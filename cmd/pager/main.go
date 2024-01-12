@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	_ "embed"
 	"flag"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
@@ -13,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"pager-services/pkg/utils"
 	"strings"
 )
 
@@ -21,6 +23,12 @@ var certTLS []byte
 
 //go:embed certs/server.key
 var keyTLS []byte
+
+var mongoClient *mongo.Client
+
+func init() {
+	mongoClient = utils.ConnectMongoDB()
+}
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	_, err := io.WriteString(w, "hello inreko practice")
@@ -102,6 +110,7 @@ func main() {
 func startGrpcServer(lis net.Listener) {
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
+	utils.RegisterGrpcServices(grpcServer)
 	log.Print("[GRPC SERVER] server listening on address: ", lis.Addr().String())
 	if err := grpcServer.Serve(lis); err != nil {
 		return
