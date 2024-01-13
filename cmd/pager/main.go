@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	//"context"
 	"crypto/tls"
 	_ "embed"
 	"flag"
@@ -14,8 +14,11 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	pager_chat "pager-services/pkg/api/pager_api/chat"
+	pager_transfers "pager-services/pkg/api/pager_api/transfers"
+	"pager-services/pkg/chat_actions"
+	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/transfers"
-	"pager-services/pkg/utils"
 	"strings"
 )
 
@@ -26,7 +29,7 @@ var certTLS []byte
 var keyTLS []byte
 
 func init() {
-	transfers.InitMongoDB()
+	mongo_ops.InitMongoDB()
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +59,7 @@ func loadTLSCredentials() (*tls.Config, error) {
 
 func main() {
 	flag.Parse()
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	grpcAddress := "localhost:0"
 	httpAddress := "localhost:4001"
@@ -105,17 +108,21 @@ func main() {
 	if httpServerError := http1Server.Serve(tlsHttpListener); httpServerError != nil {
 		return
 	}
-	transfers.ReadStream(ctx, transfers.Client.Database("test_streams").Collection("transfers"), "test")
 }
 
 func startGrpcServer(lis net.Listener) {
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
-	utils.RegisterGrpcServices(grpcServer)
+	RegisterGrpcServices(grpcServer)
 	log.Print("[GRPC SERVER] server listening on address: ", lis.Addr().String())
 	if err := grpcServer.Serve(lis); err != nil {
 		return
 	}
+}
+
+func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
+	pager_chat.RegisterChatActionsServer(registrar, &chat_actions.PagerChat{})
+	pager_transfers.RegisterPagerStreamsServer(registrar, &transfers.PagerStreams{})
 }
 
 func createGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProxy) http.Handler {

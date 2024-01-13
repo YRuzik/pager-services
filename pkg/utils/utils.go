@@ -4,16 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
-	pager_chat "pager-services/pkg/api/pager_api/chat"
-	"pager-services/pkg/chat_actions"
 )
-
-func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
-	pager_chat.RegisterChatActionsServer(registrar, &chat_actions.PagerChat{})
-}
 
 func CustomMarshal(v interface{}) ([]byte, error) {
 	if p, ok := v.(proto.Message); ok {

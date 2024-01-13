@@ -3,6 +3,10 @@ package chat_actions
 import (
 	context "context"
 	pagerChat "pager-services/pkg/api/pager_api/chat"
+	common "pager-services/pkg/api/pager_api/common"
+	pager_transfers "pager-services/pkg/api/pager_api/transfers"
+	"pager-services/pkg/mongo_ops"
+	"pager-services/pkg/transfers"
 )
 
 var _ pagerChat.ChatActionsServer = (*PagerChat)(nil)
@@ -10,9 +14,12 @@ var _ pagerChat.ChatActionsServer = (*PagerChat)(nil)
 type PagerChat struct {
 }
 
-func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessage) (*interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessage) (*common.Empty, error) {
+	collection := mongo_ops.Client.Database("test_streams").Collection("transfers")
+	if err := transfers.InsertData(ctx, collection, "test", pager_transfers.ChatStreamRequest_messages.String(), message); err != nil {
+		return nil, err
+	}
+	return &common.Empty{}, nil
 }
 
 func (p PagerChat) CreateChat(ctx context.Context, request *pagerChat.CreateChatRequest) (*pagerChat.Chat, error) {

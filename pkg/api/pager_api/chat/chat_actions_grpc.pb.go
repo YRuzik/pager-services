@@ -4,14 +4,14 @@
 // - protoc             v4.25.2
 // source: chat/chat_actions.proto
 
-package pager_chat_actions
+package pager_chat
 
 import (
 	context "context"
-	common "github.com/YRuzik/pager-services/services/pkg/api/pager_proto/common"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	common "pager-services/pkg/api/pager_api/common"
 )
 
 // This is a compile-time assertion to ensure that this generated file

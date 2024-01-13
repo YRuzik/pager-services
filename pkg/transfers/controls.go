@@ -2,24 +2,24 @@ package transfers
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
+	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/utils"
 )
 
 func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}) error {
-	if serializedData, err := utils.CustomMarshal(payload); err == nil {
+	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
 		item := &pager_transfers.TransferObject{
-			Id:        uuid.NewString(),
 			SectionId: sectionId,
 			Data:      serializedData,
 			Type:      streamType,
 		}
-		if _, err := collection.InsertOne(ctx, item); err != nil {
+		bsonItem := mongo_ops.ProtoTObjectToBSON(item)
+		if _, err := collection.InsertOne(ctx, bsonItem); err != nil {
 			return err
 		}
 	} else {
@@ -43,7 +43,6 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 		{"$match",
 			bson.D{
 				{"fullDocument.section_id", sectionId},
-				{},
 			},
 		},
 	}}
