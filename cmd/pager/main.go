@@ -1,10 +1,10 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	_ "embed"
 	"flag"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"pager-services/pkg/transfers"
 	"pager-services/pkg/utils"
 	"strings"
 )
@@ -24,10 +25,8 @@ var certTLS []byte
 //go:embed certs/server.key
 var keyTLS []byte
 
-var mongoClient *mongo.Client
-
 func init() {
-	mongoClient = utils.ConnectMongoDB()
+	transfers.InitMongoDB()
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +56,7 @@ func loadTLSCredentials() (*tls.Config, error) {
 
 func main() {
 	flag.Parse()
+	ctx := context.Background()
 
 	grpcAddress := "localhost:0"
 	httpAddress := "localhost:4001"
@@ -105,6 +105,7 @@ func main() {
 	if httpServerError := http1Server.Serve(tlsHttpListener); httpServerError != nil {
 		return
 	}
+	transfers.ReadStream(ctx, transfers.Client.Database("test_streams").Collection("transfers"), "test")
 }
 
 func startGrpcServer(lis net.Listener) {

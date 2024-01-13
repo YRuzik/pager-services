@@ -2,12 +2,13 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.25.2
-// source: chat_actions/chat_actions.proto
+// source: chat/chat_actions.proto
 
-package pager_chat
+package pager_chat_actions
 
 import (
 	context "context"
+	common "github.com/YRuzik/pager-services/services/pkg/api/pager_proto/common"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,8 +20,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ChatActions_CreateChat_FullMethodName = "/com.pager.api.ChatActions/CreateChat"
-	ChatActions_Chatting_FullMethodName   = "/com.pager.api.ChatActions/Chatting"
+	ChatActions_CreateChat_FullMethodName  = "/com.pager.api.ChatActions/CreateChat"
+	ChatActions_SendMessage_FullMethodName = "/com.pager.api.ChatActions/SendMessage"
 )
 
 // ChatActionsClient is the client API for ChatActions service.
@@ -28,7 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatActionsClient interface {
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*Chat, error)
-	Chatting(ctx context.Context, opts ...grpc.CallOption) (ChatActions_ChattingClient, error)
+	SendMessage(ctx context.Context, in *ChatMessage, opts ...grpc.CallOption) (*common.Empty, error)
 }
 
 type chatActionsClient struct {
@@ -48,35 +49,13 @@ func (c *chatActionsClient) CreateChat(ctx context.Context, in *CreateChatReques
 	return out, nil
 }
 
-func (c *chatActionsClient) Chatting(ctx context.Context, opts ...grpc.CallOption) (ChatActions_ChattingClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ChatActions_ServiceDesc.Streams[0], ChatActions_Chatting_FullMethodName, opts...)
+func (c *chatActionsClient) SendMessage(ctx context.Context, in *ChatMessage, opts ...grpc.CallOption) (*common.Empty, error) {
+	out := new(common.Empty)
+	err := c.cc.Invoke(ctx, ChatActions_SendMessage_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &chatActionsChattingClient{stream}
-	return x, nil
-}
-
-type ChatActions_ChattingClient interface {
-	Send(*Message) error
-	Recv() (*Message, error)
-	grpc.ClientStream
-}
-
-type chatActionsChattingClient struct {
-	grpc.ClientStream
-}
-
-func (x *chatActionsChattingClient) Send(m *Message) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *chatActionsChattingClient) Recv() (*Message, error) {
-	m := new(Message)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 // ChatActionsServer is the server API for ChatActions service.
@@ -84,7 +63,7 @@ func (x *chatActionsChattingClient) Recv() (*Message, error) {
 // for forward compatibility
 type ChatActionsServer interface {
 	CreateChat(context.Context, *CreateChatRequest) (*Chat, error)
-	Chatting(ChatActions_ChattingServer) error
+	SendMessage(context.Context, *ChatMessage) (*common.Empty, error)
 }
 
 // UnimplementedChatActionsServer should be embedded to have forward compatible implementations.
@@ -94,8 +73,8 @@ type UnimplementedChatActionsServer struct {
 func (UnimplementedChatActionsServer) CreateChat(context.Context, *CreateChatRequest) (*Chat, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateChat not implemented")
 }
-func (UnimplementedChatActionsServer) Chatting(ChatActions_ChattingServer) error {
-	return status.Errorf(codes.Unimplemented, "method Chatting not implemented")
+func (UnimplementedChatActionsServer) SendMessage(context.Context, *ChatMessage) (*common.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
 
 // UnsafeChatActionsServer may be embedded to opt out of forward compatibility for this service.
@@ -127,30 +106,22 @@ func _ChatActions_CreateChat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatActions_Chatting_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ChatActionsServer).Chatting(&chatActionsChattingServer{stream})
-}
-
-type ChatActions_ChattingServer interface {
-	Send(*Message) error
-	Recv() (*Message, error)
-	grpc.ServerStream
-}
-
-type chatActionsChattingServer struct {
-	grpc.ServerStream
-}
-
-func (x *chatActionsChattingServer) Send(m *Message) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *chatActionsChattingServer) Recv() (*Message, error) {
-	m := new(Message)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _ChatActions_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatMessage)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(ChatActionsServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatActions_SendMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatActionsServer).SendMessage(ctx, req.(*ChatMessage))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // ChatActions_ServiceDesc is the grpc.ServiceDesc for ChatActions service.
@@ -164,14 +135,11 @@ var ChatActions_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CreateChat",
 			Handler:    _ChatActions_CreateChat_Handler,
 		},
-	},
-	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Chatting",
-			Handler:       _ChatActions_Chatting_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "SendMessage",
+			Handler:    _ChatActions_SendMessage_Handler,
 		},
 	},
-	Metadata: "chat_actions/chat_actions.proto",
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "chat/chat_actions.proto",
 }
