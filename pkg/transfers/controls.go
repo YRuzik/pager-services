@@ -5,11 +5,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/utils"
 )
+
+type StreamItem struct {
+	*pager_transfers.TransferObject
+	streamError error
+}
+
+func (v *StreamItem) IsError() error {
+	return v.streamError
+}
 
 func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}) error {
 	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
@@ -28,17 +36,10 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 	return nil
 }
 
-//func ReadOneData(collection *mgo.Collection, id string, payload interface{}) (interface{}, error) {
-//	obj := collection.Find(bson.D{{"id", id}})
-//	if obj != nil {
-//		deserializedObject := utils.CustomUnmarshal(obj, payload)
-//		return obj, nil
-//	} else {
-//		return nil, status.Error(codes.NotFound, "object not found")
-//	}
-//}
+// ReadStream /TODO refactor/fix StreamItem repeat
+func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId string) <-chan StreamItem {
+	res := make(chan StreamItem, 10)
 
-func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId string) {
 	pipeline := mongo.Pipeline{bson.D{
 		{"$match",
 			bson.D{
@@ -46,18 +47,32 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 			},
 		},
 	}}
+
 	streamOptions := options.ChangeStream().SetFullDocument(options.UpdateLookup)
 
-	stream, err := collection.Watch(ctx, pipeline, streamOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Print("waiting for changes")
-	var changeDoc map[string]interface{}
-	for stream.Next(ctx) {
-		if e := stream.Decode(&changeDoc); e != nil {
-			log.Printf("error decoding: %s", e)
+	go func() {
+		defer close(res)
+		if stream, err := collection.Watch(ctx, pipeline, streamOptions); err == nil {
+			var changeDoc map[string]interface{}
+			for stream.Next(ctx) {
+				if stream.Err() == nil {
+					if err := stream.Decode(&changeDoc); err != nil {
+						res <- StreamItem{TransferObject: nil, streamError: err}
+					} else {
+						if transferObject, err := mongo_ops.MapTObjectToProto(changeDoc); err == nil {
+							res <- StreamItem{TransferObject: transferObject, streamError: err}
+						} else {
+							res <- StreamItem{TransferObject: nil, streamError: err}
+						}
+					}
+				} else {
+					res <- StreamItem{TransferObject: nil, streamError: err}
+				}
+			}
+		} else {
+			res <- StreamItem{TransferObject: nil, streamError: err}
 		}
-		log.Printf("change: %+v", changeDoc)
-	}
+	}()
+
+	return res
 }

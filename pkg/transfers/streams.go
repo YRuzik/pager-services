@@ -1,6 +1,7 @@
 package transfers
 
 import (
+	"log"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 )
@@ -16,6 +17,16 @@ func (p PagerStreams) StreamProfile(request *pager_transfers.ProfileStreamReques
 }
 
 func (p PagerStreams) StreamChat(request *pager_transfers.ChatStreamRequest, server pager_transfers.PagerStreams_StreamChatServer) error {
-	ReadStream(server.Context(), mongo_ops.Client.Database("test_streams").Collection("transfers"), "test")
+	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, "test") {
+		if err := item.IsError(); err != nil {
+			log.Default().Println(err)
+			return err
+		} else {
+			if err := server.Send(item.TransferObject); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
 	return nil
 }

@@ -10,6 +10,14 @@ import (
 
 var Client *mongo.Client
 
+type MongoCollections struct {
+	TestCollection    *mongo.Collection
+	ChatCollection    *mongo.Collection
+	ProfileCollection *mongo.Collection
+}
+
+var CollectionsPoll MongoCollections
+
 func InitMongoDB() {
 	uri := "mongodb://localhost:27017"
 
@@ -25,7 +33,15 @@ func InitMongoDB() {
 	if err := client.Database("local").RunCommand(context.TODO(), bson.D{{"ping", 1}}).Decode(&result); err != nil {
 		panic(err)
 	}
+
 	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
 
 	Client = client
+	database := Client.Database("test_streams")
+
+	CollectionsPoll = MongoCollections{
+		TestCollection:    database.Collection("transfers"),
+		ChatCollection:    database.Collection("chats"),
+		ProfileCollection: database.Collection("profiles"),
+	}
 }
