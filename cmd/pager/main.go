@@ -1,10 +1,11 @@
 package main
 
 import (
-	//"context"
 	"crypto/tls"
 	_ "embed"
 	"flag"
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
@@ -31,6 +32,12 @@ var keyTLS []byte
 func init() {
 	mongo_ops.InitMongoDB()
 }
+
+type grpcMultiplexer struct {
+	*grpcweb.WrappedGrpcServer
+}
+
+var multiplexer grpcMultiplexer
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	_, err := io.WriteString(w, "hello inreko practice")
@@ -84,6 +91,13 @@ func main() {
 
 	go func() { startGrpcServer(tlsGrpcListener) }()
 
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowCredentials: true,
+		Debug:            true,
+		AllowedHeaders:   []string{"*"},
+	})
+
 	proxy := httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			req.URL.Scheme = "https"
@@ -102,10 +116,10 @@ func main() {
 	httpMux.HandleFunc("/", getRoot)
 
 	http2Server := &http2.Server{}
-	http1Server := &http.Server{Handler: h2c.NewHandler(createGrpcWithHttpHandler(httpMux, proxy), http2Server)}
+	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(createGrpcWithHttpHandler(httpMux, proxy)), http2Server)}
 
 	log.Print("[HTTPS SERVER] server listening on address: ", tlsHttpListener.Addr().String())
-	if httpServerError := http1Server.Serve(tlsHttpListener); httpServerError != nil {
+	if httpServerError := http1Server.Serve(tcpHttpListener); httpServerError != nil {
 		return
 	}
 }
@@ -114,12 +128,15 @@ func startGrpcServer(lis net.Listener) {
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
 	RegisterGrpcServices(grpcServer)
+	grpcWebServer := grpcweb.WrapServer(grpcServer)
+	multiplexer = grpcMultiplexer{
+		grpcWebServer,
+	}
 	log.Print("[GRPC SERVER] server listening on address: ", lis.Addr().String())
 	if err := grpcServer.Serve(lis); err != nil {
 		return
 	}
 }
-
 func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
 	pager_chat.RegisterChatActionsServer(registrar, &chat_actions.PagerChat{})
 	pager_transfers.RegisterPagerStreamsServer(registrar, &transfers.PagerStreams{})
@@ -127,6 +144,9 @@ func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
 
 func createGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProxy) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if multiplexer.IsGrpcWebRequest(r) {
+			multiplexer.ServeHTTP(w, r)
+		}
 		if r.Method == "POST" && strings.HasPrefix(r.Header.Get("content-type"), "application/grpc") {
 			proxy.ServeHTTP(w, r)
 			return
