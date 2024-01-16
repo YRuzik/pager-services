@@ -94,7 +94,6 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
 		AllowCredentials: true,
-		Debug:            true,
 		AllowedHeaders:   []string{"*"},
 	})
 
