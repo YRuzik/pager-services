@@ -24,51 +24,44 @@ type AuthLoginData struct {
 	Password string `bson:"password"`
 }
 type AuthDataForCollection1 struct {
-	Email string `bson:"email"`
-	Login string `bson:"login"`
+	UserId string `bson:"user_id"`
+	Email  string `bson:"email"`
+	Avatar []byte `bson:"avatar"`
+	Login  string `bson:"login"`
+	Online bool   `bson:"online"`
 }
 type AuthDataForCollection2 struct {
-	ID       primitive.ObjectID `bson:"_id"`
-	Password string             `bson:"password"`
+	ID       string `bson:"_id"`
+	Password string `bson:"password"`
 }
 
-func InsertDataWithID(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}) (primitive.ObjectID, error) {
-	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
-		item := &pager_transfers.TransferObject{
-			SectionId: sectionId,
-			Data:      serializedData,
-			Type:      streamType,
-		}
-		bsonItem := mongo_ops.ProtoTObjectToBSON(item)
-		result, err := collection.InsertOne(ctx, bsonItem)
-		if err != nil {
-			return primitive.NilObjectID, err
-		}
-		return result.InsertedID.(primitive.ObjectID), nil
-	} else {
-		return primitive.NilObjectID, err
-	}
+func generateUniqueID() primitive.ObjectID {
+	return primitive.NewObjectID()
 }
 
 func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
+	uniqueID := generateUniqueID()
 
 	payloadForCollection1 := &AuthDataForCollection1{
-		Email: payload.Email,
-		Login: payload.Login,
+		UserId: uniqueID.Hex(),
+		Email:  payload.Email,
+		Avatar: nil,
+		Login:  payload.Login,
+		Online: false,
 	}
 
-	result1Id, err := InsertDataWithID(ctx, mongo_ops.CollectionsPoll.ProfileCollection, "test", pager_transfers.ProfileStreamRequest_profile_info.String(), payloadForCollection1)
+	err := InsertData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, "test", pager_transfers.ProfileStreamRequest_profile_info.String(), payloadForCollection1, uniqueID)
 	if err != nil {
 		return err
 	}
 
 	payloadForCollection2 := &AuthDataForCollection2{
-		ID:       result1Id,
+		ID:       uniqueID.Hex(),
 		Password: payload.Password,
 	}
 
 	if _, err := mongo_ops.CollectionsPoll.UsersCollection.InsertOne(ctx, payloadForCollection2); err != nil {
-		if _, err := mongo_ops.CollectionsPoll.ProfileCollection.DeleteOne(ctx, bson.M{"_id": result1Id}); err != nil {
+		if _, err := mongo_ops.CollectionsPoll.ProfileCollection.DeleteOne(ctx, bson.M{"_id": uniqueID}); err != nil {
 			return err
 		}
 		return err
@@ -76,6 +69,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 
 	return nil
 }
+
 func IsUserExistsWithData(ctx context.Context, sectionId string, email, login string) (bool, error) {
 	filter := bson.D{
 		{"section_id", sectionId},
@@ -117,7 +111,7 @@ func IsUserExistsWithData(ctx context.Context, sectionId string, email, login st
 	return false, nil
 }
 
-func FindUserIDByIdentifier(ctx context.Context, sectionId, identifier string) (primitive.ObjectID, error) {
+func FindUserIDByIdentifier(ctx context.Context, sectionId, identifier string) (string, error) {
 	filter := bson.D{
 		{"section_id", sectionId},
 		{"type", "profile_info"},
@@ -125,7 +119,7 @@ func FindUserIDByIdentifier(ctx context.Context, sectionId, identifier string) (
 
 	cursor, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
 	if err != nil {
-		return primitive.NilObjectID, err
+		return "", err
 	}
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
 		err := cursor.Close(ctx)
@@ -137,28 +131,28 @@ func FindUserIDByIdentifier(ctx context.Context, sectionId, identifier string) (
 	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
-			return primitive.NilObjectID, err
+			return "", err
 		}
 
 		dataBase64, ok := result["data"].(primitive.Binary)
 		if !ok {
-			return primitive.NilObjectID, status.Error(codes.InvalidArgument, "data field is not of type Binary")
+			return "", status.Error(codes.InvalidArgument, "data field is not of type Binary")
 		}
 
 		var userData AuthDataForCollection1
 		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
-			return primitive.NilObjectID, err
+			return "", err
 		}
 
 		if userData.Email == identifier || userData.Login == identifier {
-			return result["_id"].(primitive.ObjectID), nil
+			return result["_id"].(string), nil
 		}
 	}
 
-	return primitive.NilObjectID, status.Error(codes.NotFound, "user not found")
+	return "", status.Error(codes.NotFound, "user not found")
 }
 
-func GetHashedPasswordByID(ctx context.Context, userID primitive.ObjectID) ([]byte, error) {
+func GetHashedPasswordByID(ctx context.Context, userID string) ([]byte, error) {
 	filter := bson.D{
 		{"_id", userID},
 	}

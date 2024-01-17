@@ -2,6 +2,7 @@ package chat_actions
 
 import (
 	context "context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	pagerChat "pager-services/pkg/api/pager_api/chat"
 	common "pager-services/pkg/api/pager_api/common"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
@@ -15,7 +16,7 @@ type PagerChat struct {
 }
 
 func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessage) (*common.Empty, error) {
-	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, "test", pager_transfers.ChatStreamRequest_messages.String(), message); err != nil {
+	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, "test", pager_transfers.ChatStreamRequest_messages.String(), message, primitive.NilObjectID); err != nil {
 		return nil, err
 	}
 	return &common.Empty{}, nil

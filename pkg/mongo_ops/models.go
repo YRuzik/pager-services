@@ -9,6 +9,7 @@ import (
 
 func ProtoTObjectToBSON(item *pager_transfers.TransferObject) TransferObjectBSON {
 	return TransferObjectBSON{
+		ID:        item.Id,
 		SectionID: item.SectionId,
 		Data:      item.Data,
 		Type:      item.Type,
@@ -29,8 +30,8 @@ func MapTObjectToProto(item map[string]interface{}) (*pager_transfers.TransferOb
 }
 
 type TransferObjectBSON struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	SectionID string             `bson:"section_id"`
-	Data      []byte             `bson:"data"`
-	Type      string             `bson:"type"`
+	ID        string `bson:"_id,omitempty"`
+	SectionID string `bson:"section_id"`
+	Data      []byte `bson:"data"`
+	Type      string `bson:"type"`
 }
