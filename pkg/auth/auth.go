@@ -8,8 +8,9 @@ import (
 	"google.golang.org/grpc/status"
 	pagerAuth "pager-services/pkg/api/pager_api/auth"
 	common "pager-services/pkg/api/pager_api/common"
-	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/transfers"
+	"pager-services/pkg/utils"
+	"time"
 )
 
 var _ pagerAuth.AuthServiceServer = (*PagerAuth)(nil)
@@ -32,14 +33,22 @@ func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.Registra
 		return nil, fmt.Errorf("%s", err)
 	}
 
-	authData := &transfers.AuthData{
+	authData := &transfers.AuthRegisterData{
 		Email:    request.GetEmail(),
 		Login:    request.GetLogin(),
 		Password: string(passHash),
 	}
+	exists, err := transfers.IsUserExistsWithData(ctx, "test", authData.Email, authData.Login)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return nil, status.Error(codes.AlreadyExists, "user already exists")
+	}
 
 	// Вставляем данные в коллекции
-	err = transfers.InsertAuthData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, mongo_ops.CollectionsPoll.UsersCollection, authData)
+	err = transfers.InsertAuthData(ctx, authData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to register user: %s", err)
 	}
@@ -53,6 +62,35 @@ func (p PagerAuth) Logout(ctx context.Context, token *pagerAuth.Token) (*common.
 }
 
 func (p PagerAuth) Login(ctx context.Context, request *pagerAuth.LoginRequest) (*pagerAuth.Token, error) {
-	//TODO implement me
-	panic("implement me")
+	if request.GetIdentity() == "" {
+		return nil, status.Error(codes.InvalidArgument, "identity is require")
+	}
+	if request.GetPassword() == "" {
+		return nil, status.Error(codes.InvalidArgument, "password is require")
+	}
+	authData := &transfers.AuthLoginData{
+		Password: request.GetPassword(),
+		Identity: request.GetIdentity(),
+	}
+
+	UserId, err := transfers.FindUserIDByIdentifier(ctx, "test", authData.Identity)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "user id not found")
+	}
+	passHash, err := transfers.GetHashedPasswordByID(ctx, UserId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "password not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword(passHash, []byte(authData.Password)); err != nil {
+		return nil, err
+	}
+
+	token, err := utils.NewToken(UserId, authData.Identity, 5*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	return &pagerAuth.Token{
+		Token: token,
+	}, nil
 }

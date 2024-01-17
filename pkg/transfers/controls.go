@@ -3,7 +3,6 @@ package transfers
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
@@ -14,21 +13,6 @@ import (
 type StreamItem struct {
 	*pager_transfers.TransferObject
 	streamError error
-}
-
-type AuthData struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	Email    string             `bson:"email"`
-	Password string             `bson:"password"`
-	Login    string             `bson:"login"`
-}
-type AuthDataForCollection1 struct {
-	Email string `bson:"email"`
-	Login string `bson:"login"`
-}
-type AuthDataForCollection2 struct {
-	_id      primitive.ObjectID `bson:"_id"`
-	Password string             `bson:"password"`
 }
 
 func (v *StreamItem) IsError() error {
@@ -91,32 +75,4 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 	}()
 
 	return res
-}
-
-func InsertAuthData(ctx context.Context, collection1, collection2 *mongo.Collection, payload *AuthData) error {
-
-	payloadForCollection1 := &AuthDataForCollection1{
-		Email: payload.Email,
-		Login: payload.Login,
-	}
-
-	result1, err := collection1.InsertOne(ctx, payloadForCollection1)
-	if err != nil {
-		return err
-	}
-
-	userID := result1.InsertedID.(primitive.ObjectID)
-	payloadForCollection2 := &AuthDataForCollection2{
-		_id:      userID,
-		Password: payload.Password,
-	}
-
-	if _, err := collection2.InsertOne(ctx, payloadForCollection2); err != nil {
-		if _, err := collection1.DeleteOne(ctx, payload); err != nil {
-			return err
-		}
-		return err
-	}
-
-	return nil
 }
