@@ -20,9 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AuthService_Login_FullMethodName        = "/com.pager.api.AuthService/Login"
-	AuthService_Registration_FullMethodName = "/com.pager.api.AuthService/Registration"
-	AuthService_Logout_FullMethodName       = "/com.pager.api.AuthService/Logout"
+	AuthService_Login_FullMethodName                   = "/com.pager.api.AuthService/Login"
+	AuthService_Registration_FullMethodName            = "/com.pager.api.AuthService/Registration"
+	AuthService_Logout_FullMethodName                  = "/com.pager.api.AuthService/Logout"
+	AuthService_SearchUsersByIdentifier_FullMethodName = "/com.pager.api.AuthService/SearchUsersByIdentifier"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -32,6 +33,7 @@ type AuthServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Token, error)
 	Registration(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*common.Empty, error)
 	Logout(ctx context.Context, in *Token, opts ...grpc.CallOption) (*common.Empty, error)
+	SearchUsersByIdentifier(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
 }
 
 type authServiceClient struct {
@@ -69,6 +71,15 @@ func (c *authServiceClient) Logout(ctx context.Context, in *Token, opts ...grpc.
 	return out, nil
 }
 
+func (c *authServiceClient) SearchUsersByIdentifier(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error) {
+	out := new(SearchUsersResponse)
+	err := c.cc.Invoke(ctx, AuthService_SearchUsersByIdentifier_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations should embed UnimplementedAuthServiceServer
 // for forward compatibility
@@ -76,6 +87,7 @@ type AuthServiceServer interface {
 	Login(context.Context, *LoginRequest) (*Token, error)
 	Registration(context.Context, *RegistrationRequest) (*common.Empty, error)
 	Logout(context.Context, *Token) (*common.Empty, error)
+	SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
 }
 
 // UnimplementedAuthServiceServer should be embedded to have forward compatible implementations.
@@ -90,6 +102,9 @@ func (UnimplementedAuthServiceServer) Registration(context.Context, *Registratio
 }
 func (UnimplementedAuthServiceServer) Logout(context.Context, *Token) (*common.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedAuthServiceServer) SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchUsersByIdentifier not implemented")
 }
 
 // UnsafeAuthServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -157,6 +172,24 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_SearchUsersByIdentifier_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).SearchUsersByIdentifier(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_SearchUsersByIdentifier_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).SearchUsersByIdentifier(ctx, req.(*SearchUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -175,6 +208,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Logout",
 			Handler:    _AuthService_Logout_Handler,
+		},
+		{
+			MethodName: "SearchUsersByIdentifier",
+			Handler:    _AuthService_SearchUsersByIdentifier_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
