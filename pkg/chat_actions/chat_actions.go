@@ -2,12 +2,13 @@ package chat_actions
 
 import (
 	context "context"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	pagerChat "pager-services/pkg/api/pager_api/chat"
 	common "pager-services/pkg/api/pager_api/common"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
+	"pager-services/pkg/namespaces"
 	"pager-services/pkg/transfers"
+	"pager-services/pkg/utils"
 )
 
 var _ pagerChat.ChatActionsServer = (*PagerChat)(nil)
@@ -16,9 +17,18 @@ type PagerChat struct {
 }
 
 func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessage) (*common.Empty, error) {
-	userId := ctx.Value("user_id").(string)
+	id := utils.GenerateUniqueID()
 
-	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, "test", pager_transfers.ChatStreamRequest_messages.String(), message); err != nil {
+	updatedMessage := &pagerChat.ChatMessage{
+		Id:           id.Hex(),
+		Text:         message.Text,
+		StampMillis:  message.StampMillis,
+		Status:       pagerChat.ChatMessage_sent,
+		AuthorId:     message.AuthorId,
+		LinkedChatId: message.LinkedChatId,
+	}
+
+	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(updatedMessage.LinkedChatId), pager_transfers.ChatStreamRequest_messages.String(), updatedMessage, id); err != nil {
 		return nil, err
 	}
 	return &common.Empty{}, nil

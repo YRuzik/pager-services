@@ -4,9 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
+
+func GenerateUniqueID() primitive.ObjectID {
+	return primitive.NewObjectID()
+}
 
 func CustomMarshal(v interface{}) ([]byte, error) {
 	if p, ok := v.(proto.Message); ok {

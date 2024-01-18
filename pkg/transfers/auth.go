@@ -35,12 +35,8 @@ type AuthDataForCollection2 struct {
 	Password string `bson:"password"`
 }
 
-func generateUniqueID() primitive.ObjectID {
-	return primitive.NewObjectID()
-}
-
 func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
-	uniqueID := generateUniqueID()
+	uniqueID := utils.GenerateUniqueID()
 
 	payloadForCollection1 := &AuthDataForCollection1{
 		UserId: uniqueID.Hex(),

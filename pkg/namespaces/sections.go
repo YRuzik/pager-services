@@ -4,6 +4,6 @@ func ProfileSection(userId string) string {
 	return userId + ".profiles"
 }
 
-func ChatSection(userId string) string {
-	return userId + ".chats"
+func ChatSection(chatId string) string {
+	return chatId + ".chats"
 }
