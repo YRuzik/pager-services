@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	AuthService_Login_FullMethodName                   = "/com.pager.api.AuthService/Login"
 	AuthService_Registration_FullMethodName            = "/com.pager.api.AuthService/Registration"
-	AuthService_Logout_FullMethodName                  = "/com.pager.api.AuthService/Logout"
 	AuthService_SearchUsersByIdentifier_FullMethodName = "/com.pager.api.AuthService/SearchUsersByIdentifier"
 )
 
@@ -32,7 +31,6 @@ const (
 type AuthServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Token, error)
 	Registration(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*common.Empty, error)
-	Logout(ctx context.Context, in *Token, opts ...grpc.CallOption) (*common.Empty, error)
 	SearchUsersByIdentifier(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
 }
 
@@ -62,15 +60,6 @@ func (c *authServiceClient) Registration(ctx context.Context, in *RegistrationRe
 	return out, nil
 }
 
-func (c *authServiceClient) Logout(ctx context.Context, in *Token, opts ...grpc.CallOption) (*common.Empty, error) {
-	out := new(common.Empty)
-	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *authServiceClient) SearchUsersByIdentifier(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error) {
 	out := new(SearchUsersResponse)
 	err := c.cc.Invoke(ctx, AuthService_SearchUsersByIdentifier_FullMethodName, in, out, opts...)
@@ -86,7 +75,6 @@ func (c *authServiceClient) SearchUsersByIdentifier(ctx context.Context, in *Sea
 type AuthServiceServer interface {
 	Login(context.Context, *LoginRequest) (*Token, error)
 	Registration(context.Context, *RegistrationRequest) (*common.Empty, error)
-	Logout(context.Context, *Token) (*common.Empty, error)
 	SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
 }
 
@@ -99,9 +87,6 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*To
 }
 func (UnimplementedAuthServiceServer) Registration(context.Context, *RegistrationRequest) (*common.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Registration not implemented")
-}
-func (UnimplementedAuthServiceServer) Logout(context.Context, *Token) (*common.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedAuthServiceServer) SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchUsersByIdentifier not implemented")
@@ -154,24 +139,6 @@ func _AuthService_Registration_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Token)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Logout(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Logout_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Logout(ctx, req.(*Token))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AuthService_SearchUsersByIdentifier_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SearchUsersRequest)
 	if err := dec(in); err != nil {
@@ -204,10 +171,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Registration",
 			Handler:    _AuthService_Registration_Handler,
-		},
-		{
-			MethodName: "Logout",
-			Handler:    _AuthService_Logout_Handler,
 		},
 		{
 			MethodName: "SearchUsersByIdentifier",

@@ -12,6 +12,8 @@ import (
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/namespaces"
 	"pager-services/pkg/utils"
+	"strings"
+	"time"
 )
 
 type AuthRegisterData struct {
@@ -32,8 +34,9 @@ type AuthDataForCollection1 struct {
 	Online bool   `bson:"online"`
 }
 type AuthDataForCollection2 struct {
-	ID       string `bson:"_id"`
-	Password string `bson:"password"`
+	ID           string `bson:"_id"`
+	Password     string `bson:"password"`
+	RefreshToken string `bson:"refreshToken"`
 }
 
 func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
@@ -52,9 +55,14 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 		return err
 	}
 
+	refreshToken, err := utils.NewRefreshToken(uniqueID.Hex(), time.Hour*24*30)
+	if err != nil {
+		return err
+	}
 	payloadForCollection2 := &AuthDataForCollection2{
-		ID:       uniqueID.Hex(),
-		Password: payload.Password,
+		ID:           uniqueID.Hex(),
+		Password:     payload.Password,
+		RefreshToken: refreshToken,
 	}
 
 	if _, err := mongo_ops.CollectionsPoll.UsersCollection.InsertOne(ctx, payloadForCollection2); err != nil {
@@ -67,9 +75,8 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 	return nil
 }
 
-func IsUserExistsWithData(ctx context.Context, sectionId string, email, login string) (bool, error) {
+func IsUserExistsWithData(ctx context.Context, email, login string) (bool, error) {
 	filter := bson.D{
-		{"section_id", sectionId},
 		{"type", "profile_info"},
 	}
 
@@ -100,7 +107,7 @@ func IsUserExistsWithData(ctx context.Context, sectionId string, email, login st
 			return false, err
 		}
 
-		if userData.Email == email && userData.Login == login {
+		if userData.Email == email || userData.Login == login {
 			return true, nil
 		}
 	}
@@ -108,9 +115,8 @@ func IsUserExistsWithData(ctx context.Context, sectionId string, email, login st
 	return false, nil
 }
 
-func FindUserIDByIdentifier(ctx context.Context, sectionId, identifier string) (string, error) {
+func FindUserIDByIdentifier(ctx context.Context, identifier string) (string, error) {
 	filter := bson.D{
-		{"section_id", sectionId},
 		{"type", "profile_info"},
 	}
 
@@ -149,7 +155,7 @@ func FindUserIDByIdentifier(ctx context.Context, sectionId, identifier string) (
 	return "", status.Error(codes.NotFound, "user not found")
 }
 
-func GetHashedPasswordByID(ctx context.Context, userID string) ([]byte, error) {
+func GetHashedPasswordByIDAndRefreshToken(ctx context.Context, userID string) ([]byte, string, error) {
 	filter := bson.D{
 		{"_id", userID},
 	}
@@ -157,17 +163,16 @@ func GetHashedPasswordByID(ctx context.Context, userID string) ([]byte, error) {
 	var result AuthDataForCollection2
 	if err := mongo_ops.CollectionsPoll.UsersCollection.FindOne(ctx, filter).Decode(&result); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errors.New("user not found")
+			return nil, "", errors.New("user not found")
 		}
-		return nil, err
+		return nil, "", err
 	}
 
-	return []byte(result.Password), nil
+	return []byte(result.Password), result.RefreshToken, nil
 }
 
-func FindUserIDsByIdentifier(ctx context.Context, sectionId, identifier string) ([]string, error) {
+func FindUserIDsByIdentifier(ctx context.Context, identifier string) ([]string, error) {
 	filter := bson.D{
-		{"section_id", sectionId},
 		{"type", "profile_info"},
 	}
 
@@ -200,7 +205,7 @@ func FindUserIDsByIdentifier(ctx context.Context, sectionId, identifier string) 
 			return nil, err
 		}
 
-		if userData.Email == identifier || userData.Login == identifier {
+		if strings.Contains(userData.Email, identifier) || strings.Contains(userData.Login, identifier) {
 			userID, ok := result["_id"].(string)
 			if !ok {
 				return nil, status.Error(codes.Internal, "failed to convert ObjectID to string")
