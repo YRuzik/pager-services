@@ -102,11 +102,6 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 			if current, err := collection.Find(ctx, filter, findOptions); err == nil {
 				var foundElement *mongo_ops.TransferObjectBSON
 				for current.Next(ctx) {
-					if !current.TryNext(ctx) {
-						if err := current.Close(ctx); err != nil {
-							return
-						}
-					}
 					if current.Err() == nil {
 						if err := current.Decode(&foundElement); err != nil {
 							res <- StreamItem{TransferObject: nil, streamError: err}
