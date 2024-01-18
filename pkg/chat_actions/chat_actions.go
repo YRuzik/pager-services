@@ -2,6 +2,7 @@ package chat_actions
 
 import (
 	context "context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	pagerChat "pager-services/pkg/api/pager_api/chat"
 	common "pager-services/pkg/api/pager_api/common"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
@@ -35,26 +36,28 @@ func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessa
 }
 
 func (p PagerChat) CreateChat(ctx context.Context, request *pagerChat.CreateChatRequest) (*pagerChat.Chat, error) {
-	//userId := ctx.Value("user_id")
-	var newChat *pagerChat.Chat
+	id := utils.GenerateUniqueID()
 
-	//if request.Type == pagerChat.ChatType_group {
-	//	newChat = &pagerChat.Chat{
-	//		Id:       uuid.NewString(),
-	//		Type:     pagerChat.ChatType_group,
-	//		Rules:    request.Rules,
-	//		Messages: nil,
-	//	}
-	//} else if request.Type == pagerChat.ChatType_personal {
-	//	messageList := []pagerChat.ChatMessage{}
-	//	slice := append(messageList, request.Rules.GetPersonalChat().Message)
-	//	newChat = &pagerChat.Chat{
-	//		Id:       "",
-	//		Type:     pagerChat.ChatType_personal,
-	//		Rules:    request.Rules,
-	//		Messages: []pagerChat.{},
-	//	}
-	//}
+	newChat := &pagerChat.Chat{
+		Id:        id.Hex(),
+		Type:      request.Type,
+		Metadata:  request.Metadata,
+		MembersId: request.MembersId,
+	}
+
+	for _, memberId := range request.MembersId {
+		role := &pagerChat.ChatRole{
+			Id:   id.Hex(),
+			Role: pagerChat.ChatRole_member,
+		}
+		if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, namespaces.ProfileSection(memberId), pager_transfers.ProfileStreamRequest_chats_role.String(), role, primitive.NilObjectID); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(id.Hex()), pager_transfers.ChatStreamRequest_messages.String(), newChat, id); err != nil {
+		return nil, err
+	}
 
 	return newChat, nil
 }

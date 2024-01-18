@@ -18,7 +18,7 @@ func ProtoTObjectToBSON(item *pager_transfers.TransferObject) TransferObjectBSON
 
 func BSONToProtoTObject(item *TransferObjectBSON) *pager_transfers.TransferObject {
 	return &pager_transfers.TransferObject{
-		Id:        item.ID.Hex(),
+		Id:        item.ID,
 		SectionId: item.SectionID,
 		Data:      item.Data,
 		Type:      item.Type,
