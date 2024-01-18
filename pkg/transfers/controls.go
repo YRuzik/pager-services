@@ -3,8 +3,11 @@ package transfers
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/utils"
@@ -31,6 +34,24 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 			return err
 		}
 	} else {
+		return err
+	}
+	return nil
+}
+
+func ReadDataByID(ctx context.Context, collection *mongo.Collection, id string, payload interface{}) error {
+	docID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return status.Error(codes.Canceled, "error while building id")
+	}
+
+	var foundElement *mongo_ops.TransferObjectBSON
+
+	_ = collection.FindOne(ctx, bson.M{
+		"_id": docID,
+	}).Decode(&foundElement)
+
+	if err := utils.CustomUnmarshal(foundElement.Data, payload); err != nil {
 		return err
 	}
 	return nil

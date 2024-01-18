@@ -15,6 +15,8 @@ type PagerChat struct {
 }
 
 func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessage) (*common.Empty, error) {
+	userId := ctx.Value("user_id").(string)
+
 	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, "test", pager_transfers.ChatStreamRequest_messages.String(), message); err != nil {
 		return nil, err
 	}

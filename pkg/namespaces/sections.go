@@ -1,5 +1,9 @@
 package namespaces
 
-func profileSection(userId string) string {
-	return userId + ".users"
+func ProfileSection(userId string) string {
+	return userId + ".profiles"
+}
+
+func ChatSection(userId string) string {
+	return userId + ".chats"
 }
