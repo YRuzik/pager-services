@@ -34,10 +34,9 @@ func (p PagerStreams) StreamProfile(request *pager_transfers.ProfileStreamReques
 
 func (p PagerStreams) StreamChat(request *pager_transfers.ChatStreamRequest, server pager_transfers.PagerStreams_StreamChatServer) error {
 	ctx := server.Context()
-	userId := ctx.Value("user_id").(string)
 	watch := utils.WatchFlag(ctx)
 
-	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(userId), watch) {
+	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(request.ChatId), watch) {
 		if err := item.IsError(); err != nil {
 			log.Default().Println(err)
 			return err

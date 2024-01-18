@@ -24,14 +24,13 @@ func (v *StreamItem) IsError() error {
 
 func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}, customId primitive.ObjectID) error {
 	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
-		item := &pager_transfers.TransferObject{
-			Id:        customId.Hex(),
-			SectionId: sectionId,
+		item := &mongo_ops.TransferObjectBSON{
+			ID:        customId,
+			SectionID: sectionId,
 			Data:      serializedData,
 			Type:      streamType,
 		}
-		bsonItem := mongo_ops.ProtoTObjectToBSON(item)
-		if _, err := collection.InsertOne(ctx, bsonItem); err != nil {
+		if _, err := collection.InsertOne(ctx, item); err != nil {
 			return err
 		}
 	} else {

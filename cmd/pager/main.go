@@ -87,6 +87,7 @@ func main() {
 
 	grpcAddress := "localhost:0"
 	httpAddress := "localhost:4001"
+	authAddress := "localhost:5001"
 
 	tcpGrpcListener, listenerError := net.Listen("tcp", grpcAddress)
 	if listenerError != nil {
@@ -98,6 +99,11 @@ func main() {
 		log.Fatalf("failed to listen: %v", listenerError)
 	}
 
+	tcpAuthListener, listenerError := net.Listen("tcp", authAddress)
+	if listenerError != nil {
+		log.Fatalf("failed to listen: %v", listenerError)
+	}
+
 	tlsConfig, loadCredsError := loadTLSCredentials()
 	if loadCredsError != nil {
 		log.Fatalf("loadCreds error")
@@ -105,8 +111,10 @@ func main() {
 
 	tlsHttpListener := tls.NewListener(tcpHttpListener, tlsConfig)
 	tlsGrpcListener := tls.NewListener(tcpGrpcListener, tlsConfig)
+	tlsAuthListener := tls.NewListener(tcpAuthListener, tlsConfig)
 
 	go func() { startGrpcServer(tlsGrpcListener) }()
+	go func() { startAuthServer(tlsAuthListener) }()
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
@@ -176,10 +184,24 @@ func startGrpcServer(lis net.Listener) {
 		return
 	}
 }
+
+func startAuthServer(lis net.Listener) {
+	grpcServer := grpc.NewServer()
+	reflection.Register(grpcServer)
+	pager_auth.RegisterAuthServiceServer(grpcServer, auth.PagerAuth{})
+	grpcWebServer := grpcweb.WrapServer(grpcServer)
+	multiplexer = grpcMultiplexer{
+		grpcWebServer,
+	}
+	log.Print("[AUTH SERVER] server listening on address: ", lis.Addr().String())
+	if err := grpcServer.Serve(lis); err != nil {
+		return
+	}
+}
+
 func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
 	pager_chat.RegisterChatActionsServer(registrar, &chat_actions.PagerChat{})
 	pager_transfers.RegisterPagerStreamsServer(registrar, &transfers.PagerStreams{})
-	pager_auth.RegisterAuthServiceServer(registrar, auth.PagerAuth{})
 }
 
 func createGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProxy) http.Handler {

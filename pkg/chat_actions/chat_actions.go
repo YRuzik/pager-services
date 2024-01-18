@@ -55,7 +55,7 @@ func (p PagerChat) CreateChat(ctx context.Context, request *pagerChat.CreateChat
 		}
 	}
 
-	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(id.Hex()), pager_transfers.ChatStreamRequest_messages.String(), newChat, id); err != nil {
+	if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(id.Hex()), pager_transfers.ChatStreamRequest_chat_info.String(), newChat, id); err != nil {
 		return nil, err
 	}
 
