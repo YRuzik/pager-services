@@ -22,9 +22,10 @@ func (v *StreamItem) IsError() error {
 	return v.streamError
 }
 
-func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}) error {
+func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}, customId primitive.ObjectID) error {
 	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
 		item := &pager_transfers.TransferObject{
+			Id:        customId.Hex(),
 			SectionId: sectionId,
 			Data:      serializedData,
 			Type:      streamType,

@@ -19,12 +19,6 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-const (
-	AuthService_Login_FullMethodName        = "/com.pager.api.AuthService/Login"
-	AuthService_Registration_FullMethodName = "/com.pager.api.AuthService/Registration"
-	AuthService_Logout_FullMethodName       = "/com.pager.api.AuthService/Logout"
-)
-
 // AuthServiceClient is the client API for AuthService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
@@ -44,7 +38,7 @@ func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
 
 func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Token, error) {
 	out := new(Token)
-	err := c.cc.Invoke(ctx, AuthService_Login_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.pager.api.AuthService/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +47,7 @@ func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ..
 
 func (c *authServiceClient) Registration(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*common.Empty, error) {
 	out := new(common.Empty)
-	err := c.cc.Invoke(ctx, AuthService_Registration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.pager.api.AuthService/Registration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +56,7 @@ func (c *authServiceClient) Registration(ctx context.Context, in *RegistrationRe
 
 func (c *authServiceClient) Logout(ctx context.Context, in *Token, opts ...grpc.CallOption) (*common.Empty, error) {
 	out := new(common.Empty)
-	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.pager.api.AuthService/Logout", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +107,7 @@ func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Login_FullMethodName,
+		FullMethod: "/com.pager.api.AuthService/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).Login(ctx, req.(*LoginRequest))
@@ -131,7 +125,7 @@ func _AuthService_Registration_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Registration_FullMethodName,
+		FullMethod: "/com.pager.api.AuthService/Registration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).Registration(ctx, req.(*RegistrationRequest))
@@ -149,7 +143,7 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Logout_FullMethodName,
+		FullMethod: "/com.pager.api.AuthService/Logout",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).Logout(ctx, req.(*Token))
