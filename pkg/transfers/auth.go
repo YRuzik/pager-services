@@ -55,7 +55,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 		return err
 	}
 
-	refreshToken, err := utils.NewRefreshToken(uniqueID.Hex(), time.Hour*24*30)
+	refreshToken, err := utils.NewRefreshToken(uniqueID, payload.Email, time.Hour*24*30)
 	if err != nil {
 		return err
 	}
@@ -115,14 +115,14 @@ func IsUserExistsWithData(ctx context.Context, email, login string) (bool, error
 	return false, nil
 }
 
-func FindUserIDByIdentifier(ctx context.Context, identifier string) (string, error) {
+func FindUserIDByIdentifier(ctx context.Context, identifier string) (primitive.ObjectID, error) {
 	filter := bson.D{
 		{"type", "profile_info"},
 	}
 
 	cursor, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
 	if err != nil {
-		return "", err
+		return primitive.NilObjectID, err
 	}
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
 		err := cursor.Close(ctx)
@@ -134,30 +134,30 @@ func FindUserIDByIdentifier(ctx context.Context, identifier string) (string, err
 	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
-			return "", err
+			return primitive.NilObjectID, err
 		}
 
 		dataBase64, ok := result["data"].(primitive.Binary)
 		if !ok {
-			return "", status.Error(codes.InvalidArgument, "data field is not of type Binary")
+			return primitive.NilObjectID, status.Error(codes.InvalidArgument, "data field is not of type Binary")
 		}
 
 		var userData AuthDataForCollection1
 		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
-			return "", err
+			return primitive.NilObjectID, err
 		}
 
 		if userData.Email == identifier || userData.Login == identifier {
-			return result["_id"].(string), nil
+			return result["_id"].(primitive.ObjectID), nil
 		}
 	}
 
-	return "", status.Error(codes.NotFound, "user not found")
+	return primitive.NilObjectID, status.Error(codes.NotFound, "user not found")
 }
 
-func GetHashedPasswordByIDAndRefreshToken(ctx context.Context, userID string) ([]byte, string, error) {
+func GetHashedPasswordByIDAndRefreshToken(ctx context.Context, userID primitive.ObjectID) ([]byte, string, error) {
 	filter := bson.D{
-		{"_id", userID},
+		{"_id", userID.Hex()},
 	}
 
 	var result AuthDataForCollection2

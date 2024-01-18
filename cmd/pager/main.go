@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	_ "embed"
 	"flag"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/cors"
@@ -28,6 +29,7 @@ import (
 	"pager-services/pkg/mongo_ops"
 	handlers "pager-services/pkg/sockets"
 	"pager-services/pkg/transfers"
+	"pager-services/pkg/utils"
 	"strings"
 )
 
@@ -255,24 +257,41 @@ func authInterceptor(ctx context.Context,
 func getNewContext(ctx context.Context) (context.Context, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-
 		return ctx, status.Error(codes.Unauthenticated, "md not found")
 	}
-	if len(md["user_id"]) == 0 {
-		//logging.Default.Error("jwt doesn't exists", zap.Any("error", "md: "+fmt.Sprintf("%+v", md)))
+
+	if len(md["jwt"]) == 0 {
 		return ctx, status.Error(codes.Unauthenticated, "jwt not found")
 	}
-	tokenString := md["user_id"][0]
-	return context.WithValue(ctx, "user_id", tokenString), nil
-	//if token, err := firebaseAuth.VerifyIDToken(ctx, tokenString); err != nil {
-	//	return ctx, status.Error(codes.Unauthenticated, "invalid token")
-	//} else {
-	//	userId, ok := token.Claims["user_id"].(string)
-	//	if !ok {
-	//		return ctx, status.Error(codes.Unauthenticated, "id doesnt exists")
-	//	} else {
-	//		newContext := context.WithValue(ctx, "user_id", userId)
-	//		return newContext, nil
-	//	}
-	//}
+
+	tokenString := md["jwt"][0]
+	token, err := utils.ValidateAccessToken(tokenString)
+
+	if err != nil {
+		if len(md["refresh_token"]) == 0 {
+			return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
+		}
+
+		refreshToken := md["refresh_token"][0]
+		newAccessToken, err := utils.RefreshAccessToken(refreshToken)
+		if err != nil {
+			return ctx, status.Error(codes.Unauthenticated, "failed to refresh token")
+		}
+
+		newContext := context.WithValue(ctx, "jwt", newAccessToken)
+		return newContext, nil
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return ctx, status.Error(codes.Unknown, "failed to extract claims")
+	}
+
+	userID, ok := claims["uid"].(string)
+	if !ok {
+		return ctx, status.Error(codes.Unauthenticated, "user ID not found in token")
+	}
+
+	newContext := context.WithValue(ctx, "uid", userID)
+	return newContext, nil
 }
