@@ -18,6 +18,20 @@ var _ pagerAuth.AuthServiceServer = (*PagerAuth)(nil)
 type PagerAuth struct {
 }
 
+func (p PagerAuth) SearchUsersByIdentifier(ctx context.Context, request *pagerAuth.SearchUsersRequest) (*pagerAuth.SearchUsersResponse, error) {
+	userIds, err := transfers.FindUserIDsByIdentifier(ctx, "test", request.GetIdentifier())
+	if err != nil {
+		return nil, err
+	}
+
+	// Возвращаем список ID в ответе
+	response := &pagerAuth.SearchUsersResponse{
+		UserIds: userIds,
+	}
+
+	return response, nil
+}
+
 func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.RegistrationRequest) (*common.Empty, error) {
 	if request.GetEmail() == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is require")

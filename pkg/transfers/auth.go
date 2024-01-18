@@ -167,3 +167,54 @@ func GetHashedPasswordByID(ctx context.Context, userID string) ([]byte, error) {
 
 	return []byte(result.Password), nil
 }
+
+func FindUserIDsByIdentifier(ctx context.Context, sectionId, identifier string) ([]string, error) {
+	filter := bson.D{
+		{"section_id", sectionId},
+		{"type", "profile_info"},
+	}
+
+	cursor, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			return
+		}
+	}(cursor, ctx)
+
+	var userIDs []string
+
+	for cursor.Next(ctx) {
+		var result bson.M
+		if err := cursor.Decode(&result); err != nil {
+			return nil, err
+		}
+
+		dataBase64, ok := result["data"].(primitive.Binary)
+		if !ok {
+			return nil, status.Error(codes.InvalidArgument, "data field is not of type Binary")
+		}
+
+		var userData AuthDataForCollection1
+		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
+			return nil, err
+		}
+
+		if userData.Email == identifier || userData.Login == identifier {
+			userID, ok := result["_id"].(string)
+			if !ok {
+				return nil, status.Error(codes.Internal, "failed to convert ObjectID to string")
+			}
+			userIDs = append(userIDs, userID)
+		}
+	}
+
+	if len(userIDs) == 0 {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+
+	return userIDs, nil
+}
