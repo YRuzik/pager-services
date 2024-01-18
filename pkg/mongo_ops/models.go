@@ -7,18 +7,9 @@ import (
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 )
 
-func ProtoTObjectToBSON(item *pager_transfers.TransferObject) TransferObjectBSON {
-	return TransferObjectBSON{
-		ID:        item.Id,
-		SectionID: item.SectionId,
-		Data:      item.Data,
-		Type:      item.Type,
-	}
-}
-
 func BSONToProtoTObject(item *TransferObjectBSON) *pager_transfers.TransferObject {
 	return &pager_transfers.TransferObject{
-		Id:        item.ID,
+		Id:        item.ID.Hex(),
 		SectionId: item.SectionID,
 		Data:      item.Data,
 		Type:      item.Type,
@@ -39,8 +30,8 @@ func MapTObjectToProto(item map[string]interface{}) (*pager_transfers.TransferOb
 }
 
 type TransferObjectBSON struct {
-	ID        string `bson:"_id,omitempty"`
-	SectionID string `bson:"section_id"`
-	Data      []byte `bson:"data"`
-	Type      string `bson:"type"`
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	SectionID string             `bson:"section_id"`
+	Data      []byte             `bson:"data"`
+	Type      string             `bson:"type"`
 }
