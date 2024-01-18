@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
+	"pager-services/pkg/namespaces"
 	"pager-services/pkg/utils"
 )
 
@@ -46,7 +47,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 		Online: false,
 	}
 
-	err := InsertData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, "test", pager_transfers.ProfileStreamRequest_profile_info.String(), payloadForCollection1, uniqueID)
+	err := InsertData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, namespaces.ProfileSection(uniqueID.Hex()), pager_transfers.ProfileStreamRequest_profile_info.String(), payloadForCollection1, uniqueID)
 	if err != nil {
 		return err
 	}

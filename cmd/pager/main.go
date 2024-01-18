@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	_ "embed"
 	"flag"
@@ -10,7 +11,10 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 	"io"
 	"log"
 	"net"
@@ -39,6 +43,15 @@ func init() {
 
 type grpcMultiplexer struct {
 	*grpcweb.WrappedGrpcServer
+}
+
+type serverStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *serverStream) Context() context.Context {
+	return s.ctx
 }
 
 var multiplexer grpcMultiplexer
@@ -151,7 +164,7 @@ func main() {
 }
 
 func startGrpcServer(lis net.Listener) {
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(authInterceptor), grpc.StreamInterceptor(authStreamInterceptor))
 	reflection.Register(grpcServer)
 	RegisterGrpcServices(grpcServer)
 	grpcWebServer := grpcweb.WrapServer(grpcServer)
@@ -180,4 +193,64 @@ func createGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProx
 		}
 		httpHand.ServeHTTP(w, r)
 	})
+}
+
+func authStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	if newContext, err := getNewContext(ss.Context()); err != nil {
+		return err
+	} else {
+		return handler(srv, &serverStream{ss, newContext})
+	}
+}
+
+// INTERCEPTOR
+func authInterceptor(ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler) (interface{}, error) {
+
+	log.Printf("\nRequest - Method: %s\t \nError: %v\n",
+		info.FullMethod)
+	if info.FullMethod == "/com.niokr.api.PollActions/RecalculateFitage" {
+		handl, err := handler(ctx, req)
+		log.Printf("\nRequest - Method: %s\t \nError: %v\n",
+			info.FullMethod,
+			err)
+
+		return handl, err
+	} else if newContext, err := getNewContext(ctx); err != nil {
+		return nil, err
+	} else {
+		handl, err := handler(newContext, req)
+		log.Printf("\nRequest - Method: %s\t \nError: %v\n",
+			info.FullMethod,
+			err)
+
+		return handl, err
+	}
+}
+
+func getNewContext(ctx context.Context) (context.Context, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+
+		return ctx, status.Error(codes.Unauthenticated, "md not found")
+	}
+	if len(md["user_id"]) == 0 {
+		//logging.Default.Error("jwt doesn't exists", zap.Any("error", "md: "+fmt.Sprintf("%+v", md)))
+		return ctx, status.Error(codes.Unauthenticated, "jwt not found")
+	}
+	tokenString := md["user_id"][0]
+	return context.WithValue(ctx, "user_id", tokenString), nil
+	//if token, err := firebaseAuth.VerifyIDToken(ctx, tokenString); err != nil {
+	//	return ctx, status.Error(codes.Unauthenticated, "invalid token")
+	//} else {
+	//	userId, ok := token.Claims["user_id"].(string)
+	//	if !ok {
+	//		return ctx, status.Error(codes.Unauthenticated, "id doesnt exists")
+	//	} else {
+	//		newContext := context.WithValue(ctx, "user_id", userId)
+	//		return newContext, nil
+	//	}
+	//}
 }
