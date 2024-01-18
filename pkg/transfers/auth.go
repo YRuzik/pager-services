@@ -34,9 +34,9 @@ type AuthDataForCollection1 struct {
 	Online bool   `bson:"online"`
 }
 type AuthDataForCollection2 struct {
-	ID           string `bson:"_id"`
-	Password     string `bson:"password"`
-	RefreshToken string `bson:"refreshToken"`
+	ID           primitive.ObjectID `bson:"_id"`
+	Password     string             `bson:"password"`
+	RefreshToken string             `bson:"refreshToken"`
 }
 
 func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
@@ -60,7 +60,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 		return err
 	}
 	payloadForCollection2 := &AuthDataForCollection2{
-		ID:           uniqueID.Hex(),
+		ID:           uniqueID,
 		Password:     payload.Password,
 		RefreshToken: refreshToken,
 	}
