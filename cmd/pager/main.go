@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	_ "embed"
 	"flag"
+	"github.com/gorilla/websocket"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
@@ -21,6 +22,7 @@ import (
 	"pager-services/pkg/auth"
 	"pager-services/pkg/chat_actions"
 	"pager-services/pkg/mongo_ops"
+	handlers "pager-services/pkg/sockets"
 	"pager-services/pkg/transfers"
 	"strings"
 )
@@ -96,7 +98,6 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
 		AllowCredentials: true,
-		Debug:            true,
 		AllowedHeaders:   []string{"*"},
 	})
 
@@ -116,6 +117,29 @@ func main() {
 
 	httpMux := http.NewServeMux()
 	httpMux.HandleFunc("/", getRoot)
+	hub := handlers.NewHub()
+	go hub.Run()
+	httpMux.HandleFunc("/ws/{userID}", func(responseWriter http.ResponseWriter, request *http.Request) {
+		var upgrader = websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
+
+		// Reading username from request parameter
+		userID := request.Header.Get("userId")
+
+		// Upgrading the HTTP connection socket connection
+		upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+		connection, err := upgrader.Upgrade(responseWriter, request, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		handlers.CreateNewSocketUser(hub, connection, userID)
+
+	})
 
 	http2Server := &http2.Server{}
 	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(createGrpcWithHttpHandler(httpMux, proxy)), http2Server)}

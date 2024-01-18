@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/improbable-eng/grpc-web v0.15.0
 	github.com/rs/cors v1.10.1
 	go.mongodb.org/mongo-driver v1.13.1

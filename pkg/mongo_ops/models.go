@@ -16,6 +16,15 @@ func ProtoTObjectToBSON(item *pager_transfers.TransferObject) TransferObjectBSON
 	}
 }
 
+func BSONToProtoTObject(item *TransferObjectBSON) *pager_transfers.TransferObject {
+	return &pager_transfers.TransferObject{
+		Id:        item.ID.Hex(),
+		SectionId: item.SectionID,
+		Data:      item.Data,
+		Type:      item.Type,
+	}
+}
+
 func MapTObjectToProto(item map[string]interface{}) (*pager_transfers.TransferObject, error) {
 	if fullDocument, ok := item["fullDocument"].(map[string]interface{}); !ok {
 		return nil, status.Error(codes.Unknown, "unknown map format")
