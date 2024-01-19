@@ -19,7 +19,7 @@ type PagerAuth struct {
 }
 
 func (p PagerAuth) SearchUsersByIdentifier(ctx context.Context, request *pagerAuth.SearchUsersRequest) (*pagerAuth.SearchUsersResponse, error) {
-	userIds, err := transfers.FindUserIDsByIdentifier(ctx, "test", request.GetIdentifier())
+	userIds, err := transfers.FindUserIDsByIdentifier(ctx, request.GetIdentifier())
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.Registra
 		Login:    request.GetLogin(),
 		Password: string(passHash),
 	}
-	exists, err := transfers.IsUserExistsWithData(ctx, "test", authData.Email, authData.Login)
+	exists, err := transfers.IsUserExistsWithData(ctx, authData.Email, authData.Login)
 	if err != nil {
 		return nil, err
 	}
@@ -70,11 +70,6 @@ func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.Registra
 	return &common.Empty{}, nil
 }
 
-func (p PagerAuth) Logout(ctx context.Context, token *pagerAuth.Token) (*common.Empty, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (p PagerAuth) Login(ctx context.Context, request *pagerAuth.LoginRequest) (*pagerAuth.Token, error) {
 	if request.GetIdentity() == "" {
 		return nil, status.Error(codes.InvalidArgument, "identity is require")
@@ -87,24 +82,23 @@ func (p PagerAuth) Login(ctx context.Context, request *pagerAuth.LoginRequest) (
 		Identity: request.GetIdentity(),
 	}
 
-	UserId, err := transfers.FindUserIDByIdentifier(ctx, "test", authData.Identity)
+	UserId, err := transfers.FindUserIDByIdentifier(ctx, authData.Identity)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "user id not found")
 	}
-	passHash, err := transfers.GetHashedPasswordByID(ctx, UserId)
+	passHash, refreshToken, err := transfers.GetHashedPasswordByIDAndRefreshToken(ctx, UserId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "password not found")
 	}
-
 	if err := bcrypt.CompareHashAndPassword(passHash, []byte(authData.Password)); err != nil {
 		return nil, err
 	}
-
-	token, err := utils.NewToken(UserId, authData.Identity, 5*time.Minute)
+	AccessToken, err := utils.NewToken(UserId, authData.Identity, 5*time.Minute)
 	if err != nil {
 		return nil, err
 	}
 	return &pagerAuth.Token{
-		Token: token,
+		RefreshToken: refreshToken,
+		AccessToken:  AccessToken,
 	}, nil
 }
