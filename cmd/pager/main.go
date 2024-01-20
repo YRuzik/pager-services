@@ -89,7 +89,7 @@ func main() {
 	tlsAuthListener := tls.NewListener(tcpAuthListener, tlsConfig)
 	hub := handlers.NewHub()
 
-	go func() { server_utils.StartGrpcServer(tcpGrpcListener) }()
+	go func() { server_utils.StartGrpcServer(tlsGrpcListener) }()
 	go func() { server_utils.StartAuthServer(tlsAuthListener) }()
 	go hub.Run()
 
@@ -104,10 +104,10 @@ func main() {
 	server_utils.HandleHttpRoutes(httpMux, hub)
 
 	http2Server := &http2.Server{}
-	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpMux, proxy)), http2Server)}
+	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpMux, proxy, false)), http2Server)}
 
 	httpAuth2Server := &http2.Server{}
-	http1AuthServer := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpAuthMux, authProxy)), httpAuth2Server)}
+	http1AuthServer := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpAuthMux, authProxy, true)), httpAuth2Server)}
 
 	go func() {
 		log.Print("[HTTPS AUTH SERVER] server listening on address: ", tcpHttpAuthListener.Addr().String())

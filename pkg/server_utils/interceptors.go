@@ -24,14 +24,7 @@ func AuthInterceptor(ctx context.Context,
 
 	log.Printf("\nRequest - Method: %s\t \nError: %v\n",
 		info.FullMethod)
-	if info.FullMethod == "/com.niokr.api.PollActions/RecalculateFitage" {
-		handl, err := handler(ctx, req)
-		log.Printf("\nRequest - Method: %s\t \nError: %v\n",
-			info.FullMethod,
-			err)
-
-		return handl, err
-	} else if newContext, err := getNewContext(ctx); err != nil {
+	if newContext, err := getNewContext(ctx); err != nil {
 		return nil, err
 	} else {
 		handl, err := handler(newContext, req)

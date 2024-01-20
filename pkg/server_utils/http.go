@@ -45,7 +45,7 @@ func HandleHttpRoutes(mux *http.ServeMux, hub *handlers.Hub) {
 func ProxyBuilder(grpcAddress string, tlsConfig *tls.Config) httputil.ReverseProxy {
 	return httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			req.URL.Scheme = "http"
+			req.URL.Scheme = "https"
 			req.URL.Host = grpcAddress
 		},
 		ErrorLog: log.New(log.Writer(), "proxy error ", 0),

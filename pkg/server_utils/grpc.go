@@ -32,11 +32,12 @@ func (s *serverStream) Context() context.Context {
 }
 
 var multiplexer grpcMultiplexer
+var authMultiplexer grpcMultiplexer
 
 func StartGrpcServer(lis net.Listener) {
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(AuthInterceptor), grpc.StreamInterceptor(AuthStreamInterceptor))
-	reflection.Register(grpcServer)
 	RegisterGrpcServices(grpcServer)
+	reflection.Register(grpcServer)
 	grpcWebServer := grpcweb.WrapServer(grpcServer)
 	multiplexer = grpcMultiplexer{
 		grpcWebServer,
@@ -52,7 +53,7 @@ func StartAuthServer(lis net.Listener) {
 	reflection.Register(grpcServer)
 	pager_auth.RegisterAuthServiceServer(grpcServer, auth.PagerAuth{})
 	grpcWebServer := grpcweb.WrapServer(grpcServer)
-	multiplexer = grpcMultiplexer{
+	authMultiplexer = grpcMultiplexer{
 		grpcWebServer,
 	}
 	log.Print("[AUTH SERVER] server listening on address: ", lis.Addr().String())
@@ -66,11 +67,18 @@ func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
 	pager_transfers.RegisterPagerStreamsServer(registrar, &transfers.PagerStreams{})
 }
 
-func CreateGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProxy) http.Handler {
+func CreateGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProxy, isAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if multiplexer.IsGrpcWebRequest(r) {
-			multiplexer.ServeHTTP(w, r)
-			return
+		if isAuth {
+			if authMultiplexer.IsGrpcWebRequest(r) {
+				authMultiplexer.ServeHTTP(w, r)
+				return
+			}
+		} else {
+			if multiplexer.IsGrpcWebRequest(r) {
+				multiplexer.ServeHTTP(w, r)
+				return
+			}
 		}
 		if r.Method == "POST" && strings.HasPrefix(r.Header.Get("content-type"), "application/grpc") {
 			proxy.ServeHTTP(w, r)
