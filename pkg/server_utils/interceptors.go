@@ -52,36 +52,14 @@ func getNewContext(ctx context.Context) (context.Context, error) {
 	}
 
 	if len(md["jwt"]) == 0 {
-		if len(md["refresh_token"]) == 0 {
-			return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
-		}
-
-		refreshToken := md["refresh_token"][0]
-		newAccessToken, err := utils.RefreshAccessToken(refreshToken)
-		if err != nil {
-			return ctx, status.Error(codes.Unauthenticated, "failed to refresh token")
-		}
-
-		newContext := metadata.AppendToOutgoingContext(ctx, "jwt", newAccessToken)
-		return newContext, nil
+		return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
 	}
 
 	tokenString := md["jwt"][0]
 	token, err := utils.ValidateAccessToken(tokenString)
 
 	if err != nil {
-		if len(md["refresh_token"]) == 0 {
-			return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
-		}
-
-		refreshToken := md["refresh_token"][0]
-		newAccessToken, err := utils.RefreshAccessToken(refreshToken)
-		if err != nil {
-			return ctx, status.Error(codes.Unauthenticated, "failed to refresh token")
-		}
-
-		newContext := metadata.AppendToOutgoingContext(ctx, "jwt", newAccessToken)
-		return newContext, nil
+		return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
@@ -89,11 +67,11 @@ func getNewContext(ctx context.Context) (context.Context, error) {
 		return ctx, status.Error(codes.Unknown, "failed to extract claims")
 	}
 
-	userID, ok := claims["uid"].(string)
+	userID, ok := claims["user_id"].(string)
 	if !ok {
 		return ctx, status.Error(codes.Unauthenticated, "user ID not found in token")
 	}
 
-	newContext := metadata.AppendToOutgoingContext(ctx, "uid", userID)
+	newContext := context.WithValue(ctx, "user_id", userID)
 	return newContext, nil
 }

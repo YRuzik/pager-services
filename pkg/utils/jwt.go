@@ -14,7 +14,7 @@ func NewToken(uid primitive.ObjectID, identity string, duration time.Duration) (
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
-	claims["uid"] = uid
+	claims["user_id"] = uid
 	claims["identity"] = identity
 	claims["exp"] = time.Now().Add(duration).Unix()
 
@@ -29,7 +29,7 @@ func NewRefreshToken(uid primitive.ObjectID, identity string, duration time.Dura
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
-	claims["uid"] = uid
+	claims["user_id"] = uid
 	claims["identity"] = identity
 	claims["exp"] = time.Now().Add(duration).Unix()
 
@@ -71,7 +71,7 @@ func RefreshAccessToken(refreshTokenString string) (string, error) {
 		return "", status.Error(codes.Unauthenticated, "failed to extract claims from refresh token")
 	}
 
-	uid, ok := claims["uid"].(string)
+	uid, ok := claims["user_id"].(string)
 	if !ok {
 		return "", status.Error(codes.Unauthenticated, "user ID not found in refresh token")
 	}
