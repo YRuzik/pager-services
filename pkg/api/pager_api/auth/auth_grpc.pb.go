@@ -23,6 +23,7 @@ const (
 	AuthService_Login_FullMethodName                   = "/com.pager.api.AuthService/Login"
 	AuthService_Registration_FullMethodName            = "/com.pager.api.AuthService/Registration"
 	AuthService_SearchUsersByIdentifier_FullMethodName = "/com.pager.api.AuthService/SearchUsersByIdentifier"
+	AuthService_Refresh_FullMethodName                 = "/com.pager.api.AuthService/Refresh"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -32,6 +33,7 @@ type AuthServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Token, error)
 	Registration(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*common.Empty, error)
 	SearchUsersByIdentifier(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
+	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 }
 
 type authServiceClient struct {
@@ -69,6 +71,15 @@ func (c *authServiceClient) SearchUsersByIdentifier(ctx context.Context, in *Sea
 	return out, nil
 }
 
+func (c *authServiceClient) Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error) {
+	out := new(RefreshResponse)
+	err := c.cc.Invoke(ctx, AuthService_Refresh_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations should embed UnimplementedAuthServiceServer
 // for forward compatibility
@@ -76,6 +87,7 @@ type AuthServiceServer interface {
 	Login(context.Context, *LoginRequest) (*Token, error)
 	Registration(context.Context, *RegistrationRequest) (*common.Empty, error)
 	SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
+	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 }
 
 // UnimplementedAuthServiceServer should be embedded to have forward compatible implementations.
@@ -90,6 +102,9 @@ func (UnimplementedAuthServiceServer) Registration(context.Context, *Registratio
 }
 func (UnimplementedAuthServiceServer) SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchUsersByIdentifier not implemented")
+}
+func (UnimplementedAuthServiceServer) Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
 }
 
 // UnsafeAuthServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -157,6 +172,24 @@ func _AuthService_SearchUsersByIdentifier_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).Refresh(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_Refresh_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).Refresh(ctx, req.(*RefreshRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -175,6 +208,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchUsersByIdentifier",
 			Handler:    _AuthService_SearchUsersByIdentifier_Handler,
+		},
+		{
+			MethodName: "Refresh",
+			Handler:    _AuthService_Refresh_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

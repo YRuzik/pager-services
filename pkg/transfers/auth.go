@@ -157,7 +157,7 @@ func FindUserIDByIdentifier(ctx context.Context, identifier string) (primitive.O
 
 func GetHashedPasswordByIDAndRefreshToken(ctx context.Context, userID primitive.ObjectID) ([]byte, string, error) {
 	filter := bson.D{
-		{"_id", userID.Hex()},
+		{"_id", userID},
 	}
 
 	var result AuthDataForCollection2
@@ -206,11 +206,11 @@ func FindUserIDsByIdentifier(ctx context.Context, identifier string) ([]string, 
 		}
 
 		if strings.Contains(userData.Email, identifier) || strings.Contains(userData.Login, identifier) {
-			userID, ok := result["_id"].(string)
+			userID, ok := result["_id"].(primitive.ObjectID)
 			if !ok {
 				return nil, status.Error(codes.Internal, "failed to convert ObjectID to string")
 			}
-			userIDs = append(userIDs, userID)
+			userIDs = append(userIDs, userID.Hex())
 		}
 	}
 
@@ -219,4 +219,15 @@ func FindUserIDsByIdentifier(ctx context.Context, identifier string) ([]string, 
 	}
 
 	return userIDs, nil
+}
+
+func CheckRefreshToken(ctx context.Context, token string) (bool, error) {
+	filter := bson.D{
+		{"refreshToken", token},
+	}
+	_, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
+	if err != nil {
+		return false, status.Error(codes.NotFound, "refreshToken not found in db")
+	}
+	return true, nil
 }
