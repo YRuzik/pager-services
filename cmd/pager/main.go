@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/server_utils"
-	handlers "pager-services/pkg/sockets"
 )
 
 //go:embed certs/server.crt
@@ -87,11 +86,9 @@ func main() {
 	tlsHttpListener := tls.NewListener(tcpHttpListener, tlsConfig)
 	tlsGrpcListener := tls.NewListener(tcpGrpcListener, tlsConfig)
 	tlsAuthListener := tls.NewListener(tcpAuthListener, tlsConfig)
-	hub := handlers.NewHub()
 
 	go func() { server_utils.StartGrpcServer(tlsGrpcListener) }()
 	go func() { server_utils.StartAuthServer(tlsAuthListener) }()
-	go hub.Run()
 
 	c := server_utils.Cors()
 
@@ -101,7 +98,7 @@ func main() {
 	httpMux := http.NewServeMux()
 	httpAuthMux := http.NewServeMux()
 
-	server_utils.HandleHttpRoutes(httpMux, hub)
+	server_utils.HandleHttpRoutes(httpMux)
 
 	http2Server := &http2.Server{}
 	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpMux, proxy, false)), http2Server)}
