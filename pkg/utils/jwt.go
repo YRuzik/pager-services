@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
@@ -41,13 +42,27 @@ func NewRefreshToken(uid primitive.ObjectID, identity string, duration time.Dura
 }
 
 func ValidateAccessToken(tokenString string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	//return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	//	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	//		return nil, status.Error(codes.Unknown, "unexpected signing method")
+	//	}
+	//
+	//	return secretKey, nil
+	//})
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, status.Error(codes.Unknown, "unexpected signing method")
+			return nil, status.Error(codes.Unknown, "unexpected signing method:")
 		}
-
 		return secretKey, nil
 	})
+	switch {
+	case token.Valid:
+		return token, nil
+	case errors.Is(err, jwt.ErrTokenExpired):
+		return nil, nil
+	default:
+		return nil, status.Error(codes.Unknown, "validate access token failed")
+	}
 }
 
 func ValidateRefreshToken(tokenString string) (*jwt.Token, error) {

@@ -19,19 +19,28 @@ type PagerAuth struct {
 }
 
 func (p PagerAuth) Refresh(ctx context.Context, request *pagerAuth.RefreshRequest) (*pagerAuth.RefreshResponse, error) {
-	refreshToken := request.RefreshToken
-	if _, err := utils.ValidateRefreshToken(refreshToken); err != nil {
-		return nil, status.Error(codes.Aborted, "refresh token failed to validate")
-	}
-	_, err := transfers.CheckRefreshToken(ctx, refreshToken)
+	accessToken := request.AccessToken
+	validAccessToken, err := utils.ValidateAccessToken(accessToken)
 	if err != nil {
 		return nil, err
 	}
-	newAccessToken, err := utils.RefreshAccessToken(refreshToken)
-	if err != nil {
-		return nil, err
+
+	if validAccessToken == nil {
+		refreshToken := request.RefreshToken
+		if _, err := utils.ValidateRefreshToken(refreshToken); err != nil {
+			return nil, status.Error(codes.Aborted, "refresh token failed to validate")
+		}
+		_, err := transfers.CheckRefreshToken(ctx, refreshToken)
+		if err != nil {
+			return nil, err
+		}
+		newAccessToken, err := utils.RefreshAccessToken(refreshToken)
+		if err != nil {
+			return nil, err
+		}
+		return &pagerAuth.RefreshResponse{AccessToken: newAccessToken}, nil
 	}
-	return &pagerAuth.RefreshResponse{AccessToken: newAccessToken}, nil
+	return &pagerAuth.RefreshResponse{AccessToken: validAccessToken.Raw}, nil
 }
 
 func (p PagerAuth) SearchUsersByIdentifier(ctx context.Context, request *pagerAuth.SearchUsersRequest) (*pagerAuth.SearchUsersResponse, error) {
