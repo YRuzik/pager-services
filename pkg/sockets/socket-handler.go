@@ -66,7 +66,7 @@ func handleSocketPayloadEvents(client *Client, socketEventPayload SocketEventStr
 		if socketEventPayload.EventPayload != nil {
 
 			userID := (socketEventPayload.EventPayload).(string)
-			var userDetails *pager_common.PagerProfile
+			userDetails := &pager_common.PagerProfile{}
 			if err := transfers.ReadDataByID(ctx, mongo_ops.CollectionsPoll.ProfileCollection, userID, userDetails); err != nil {
 				return
 			}

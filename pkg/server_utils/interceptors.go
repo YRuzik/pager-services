@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"log"
+	common "pager-services/pkg/api/pager_api/common"
 	"pager-services/pkg/utils"
 )
 
@@ -48,28 +48,41 @@ func AuthInterceptor(ctx context.Context,
 func getNewContext(ctx context.Context) (context.Context, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return ctx, status.Error(codes.Unauthenticated, "md not found")
+		return ctx, utils.MentorError("md not found", codes.Unauthenticated, &common.PagerError{
+			Code: common.PagerError_UNKNOWN,
+		})
 	}
 
 	if len(md["jwt"]) == 0 {
-		return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
+		return ctx, utils.MentorError("invalid token, refresh token not found", codes.Unauthenticated, &common.PagerError{
+			Code: common.PagerError_UNAUTHENTICATED,
+		})
 	}
 
 	tokenString := md["jwt"][0]
 	token, err := utils.ValidateAccessToken(tokenString)
 
 	if err != nil {
-		return ctx, status.Error(codes.Unauthenticated, "invalid token, refresh token not found")
+		return ctx, utils.MentorError("invalid token, refresh token not found", codes.Unauthenticated, &common.PagerError{
+			Code:    common.PagerError_UNAUTHENTICATED,
+			Details: err.Error(),
+		})
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return ctx, status.Error(codes.Unknown, "failed to extract claims")
+		return ctx, utils.MentorError("failed to extract claims", codes.Internal, &common.PagerError{
+			Code:    common.PagerError_INTERNAL,
+			Details: err.Error(),
+		})
 	}
 
 	userID, ok := claims["user_id"].(string)
 	if !ok {
-		return ctx, status.Error(codes.Unauthenticated, "user ID not found in token")
+		return ctx, utils.MentorError("user ID not found in token", codes.Unauthenticated, &common.PagerError{
+			Code:    common.PagerError_UNAUTHENTICATED,
+			Details: err.Error(),
+		})
 	}
 
 	newContext := context.WithValue(ctx, "user_id", userID)

@@ -21,15 +21,12 @@ type PagerAuth struct {
 func (p PagerAuth) Refresh(ctx context.Context, request *pagerAuth.RefreshRequest) (*pagerAuth.RefreshResponse, error) {
 	accessToken := request.AccessToken
 	validAccessToken, err := utils.ValidateAccessToken(accessToken)
-	if err != nil {
-		return nil, err
-	}
 
-	if validAccessToken == nil {
+	if err != nil {
 		refreshToken := request.RefreshToken
 		validateRefresh, err := utils.ValidateRefreshToken(refreshToken)
 		if err != nil {
-			return nil, status.Error(codes.Aborted, "refresh token failed to validate")
+			return nil, err
 		}
 		_, err = transfers.CheckRefreshToken(ctx, refreshToken)
 		if err != nil {
@@ -98,10 +95,14 @@ func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.Registra
 
 func (p PagerAuth) Login(ctx context.Context, request *pagerAuth.LoginRequest) (*pagerAuth.Token, error) {
 	if request.GetIdentity() == "" {
-		return nil, status.Error(codes.InvalidArgument, "identity is require")
+		return nil, utils.MentorError("identity require", codes.InvalidArgument, &common.PagerError{
+			Code: common.PagerError_INVALID_ARGUMENT,
+		})
 	}
 	if request.GetPassword() == "" {
-		return nil, status.Error(codes.InvalidArgument, "password is require")
+		return nil, utils.MentorError("password require", codes.InvalidArgument, &common.PagerError{
+			Code: common.PagerError_INVALID_ARGUMENT,
+		})
 	}
 	authData := &transfers.AuthLoginData{
 		Password: request.GetPassword(),
@@ -110,16 +111,22 @@ func (p PagerAuth) Login(ctx context.Context, request *pagerAuth.LoginRequest) (
 
 	UserId, err := transfers.FindUserIDByIdentifier(ctx, authData.Identity)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "user id not found")
+		return nil, err
 	}
 	passHash, refreshToken, err := transfers.GetHashedPasswordByIDAndRefreshToken(ctx, UserId)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "password not found")
+		return nil, utils.MentorError("password not found", codes.NotFound, &common.PagerError{
+			Code:    common.PagerError_NOT_FOUND,
+			Details: err.Error(),
+		})
 	}
 	if err := bcrypt.CompareHashAndPassword(passHash, []byte(authData.Password)); err != nil {
-		return nil, err
+		return nil, utils.MentorError("unknown error", codes.Unknown, &common.PagerError{
+			Code:    common.PagerError_UNKNOWN,
+			Details: err.Error(),
+		})
 	}
-	AccessToken, err := utils.NewToken(UserId, authData.Identity, 5*time.Minute)
+	AccessToken, err := utils.NewToken(UserId, authData.Identity, 5*time.Second)
 	if err != nil {
 		return nil, err
 	}
