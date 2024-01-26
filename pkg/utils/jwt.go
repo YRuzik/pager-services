@@ -75,11 +75,7 @@ func ValidateRefreshToken(tokenString string) (*jwt.Token, error) {
 	})
 }
 
-func RefreshAccessToken(refreshTokenString string) (string, error) {
-	refreshToken, err := ValidateRefreshToken(refreshTokenString)
-	if err != nil {
-		return "", status.Error(codes.Unauthenticated, "invalid refresh token")
-	}
+func RefreshAccessToken(refreshToken *jwt.Token) (string, error) {
 
 	claims, ok := refreshToken.Claims.(jwt.MapClaims)
 	if !ok {

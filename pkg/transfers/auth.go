@@ -225,7 +225,7 @@ func CheckRefreshToken(ctx context.Context, token string) (bool, error) {
 	filter := bson.D{
 		{"refreshToken", token},
 	}
-	_, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
+	_, err := mongo_ops.CollectionsPoll.UsersCollection.Find(ctx, filter)
 	if err != nil {
 		return false, status.Error(codes.NotFound, "refreshToken not found in db")
 	}

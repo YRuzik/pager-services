@@ -27,14 +27,15 @@ func (p PagerAuth) Refresh(ctx context.Context, request *pagerAuth.RefreshReques
 
 	if validAccessToken == nil {
 		refreshToken := request.RefreshToken
-		if _, err := utils.ValidateRefreshToken(refreshToken); err != nil {
+		validateRefresh, err := utils.ValidateRefreshToken(refreshToken)
+		if err != nil {
 			return nil, status.Error(codes.Aborted, "refresh token failed to validate")
 		}
-		_, err := transfers.CheckRefreshToken(ctx, refreshToken)
+		_, err = transfers.CheckRefreshToken(ctx, refreshToken)
 		if err != nil {
 			return nil, err
 		}
-		newAccessToken, err := utils.RefreshAccessToken(refreshToken)
+		newAccessToken, err := utils.RefreshAccessToken(validateRefresh)
 		if err != nil {
 			return nil, err
 		}
