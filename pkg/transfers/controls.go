@@ -51,7 +51,7 @@ func ReadDataByID(ctx context.Context, collection *mongo.Collection, id string, 
 		"_id": docID,
 	}).Decode(&foundElement)
 
-	if err := utils.CustomUnmarshal(foundElement.Data, payload); err != nil {
+	if err := utils.CustomUnmarshal(foundElement.Data, &payload); err != nil {
 		return err
 	}
 	return nil
