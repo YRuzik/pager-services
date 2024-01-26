@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	_ "embed"
 	"flag"
+	mux2 "github.com/gorilla/mux"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/server_utils"
+	handlers "pager-services/pkg/sockets"
 )
 
 //go:embed certs/server.crt
@@ -87,21 +89,24 @@ func main() {
 	tlsGrpcListener := tls.NewListener(tcpGrpcListener, tlsConfig)
 	tlsAuthListener := tls.NewListener(tcpAuthListener, tlsConfig)
 
+	hub := handlers.NewHub()
+
 	go func() { server_utils.StartGrpcServer(tlsGrpcListener) }()
 	go func() { server_utils.StartAuthServer(tlsAuthListener) }()
+	go hub.Run()
 
 	c := server_utils.Cors()
 
 	proxy := server_utils.ProxyBuilder(tlsGrpcListener.Addr().String(), tlsConfig)
 	authProxy := server_utils.ProxyBuilder(tlsAuthListener.Addr().String(), tlsConfig)
 
-	httpMux := http.NewServeMux()
+	mux := mux2.NewRouter()
 	httpAuthMux := http.NewServeMux()
 
-	server_utils.HandleHttpRoutes(httpMux)
+	server_utils.HandleHttpRoutes(mux, hub)
 
 	http2Server := &http2.Server{}
-	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpMux, proxy, false)), http2Server)}
+	http1Server := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(mux, proxy, false)), http2Server)}
 
 	httpAuth2Server := &http2.Server{}
 	http1AuthServer := &http.Server{Handler: h2c.NewHandler(c.Handler(server_utils.CreateGrpcWithHttpHandler(httpAuthMux, authProxy, true)), httpAuth2Server)}
