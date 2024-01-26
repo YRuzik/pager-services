@@ -7,3 +7,7 @@ func ProfileSection(userId string) string {
 func ChatSection(chatId string) string {
 	return chatId + ".chats"
 }
+
+func MemberSection(memberId string) string {
+	return memberId + ".members"
+}

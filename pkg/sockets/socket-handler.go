@@ -60,7 +60,29 @@ func handleSocketPayloadEvents(client *Client, socketEventPayload SocketEventStr
 					Login:  userDetails.Login,
 				},
 			}
+			if err := UpdateUserOnlineStatusByUserID(userID, true); err != nil {
+				return
+			}
 			BroadcastSocketEventToAllClientExceptMe(client.hub, newUserOnlinePayload, userDetails.UserId)
+		}
+	case "watch-user":
+		userId := (socketEventPayload.EventPayload.(map[string]interface{})["userId"]).(string)
+		targetId := (socketEventPayload.EventPayload.(map[string]interface{})["targetId"]).(string)
+		userDetails := &pager_common.PagerProfile{}
+		if err := transfers.ReadDataByID(ctx, mongo_ops.CollectionsPoll.ProfileCollection, targetId, userDetails); err != nil {
+			return
+		}
+		if userDetails == nil {
+			log.Println("An invalid user with userID " + targetId)
+		} else {
+			userPayload := SocketEventStruct{
+				EventName: "user-info",
+				EventPayload: UserDetailsResponsePayloadStruct{
+					UserId: userDetails.UserId,
+					Login:  userDetails.Login,
+				},
+			}
+			EmitToSpecificClient(client.hub, userPayload, userId)
 		}
 	case "disconnect":
 		if socketEventPayload.EventPayload != nil {
@@ -70,14 +92,17 @@ func handleSocketPayloadEvents(client *Client, socketEventPayload SocketEventStr
 			if err := transfers.ReadDataByID(ctx, mongo_ops.CollectionsPoll.ProfileCollection, userID, userDetails); err != nil {
 				return
 			}
-			//UpdateUserOnlineStatusByUserID(userID, false)
+			if err := UpdateUserOnlineStatusByUserID(userID, false); err != nil {
+				return
+			}
 
 			BroadcastSocketEventToAllClient(client.hub, SocketEventStruct{
 				EventName: "user-disconnected",
 				EventPayload: UserDetailsResponsePayloadStruct{
-					Online: false,
-					UserId: userDetails.UserId,
-					Login:  userDetails.Login,
+					Online:         false,
+					UserId:         userDetails.UserId,
+					Login:          userDetails.Login,
+					LastSeenMillis: time.Now().UnixMilli(),
 				},
 			})
 		}
