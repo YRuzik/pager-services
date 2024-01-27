@@ -23,12 +23,34 @@ func (v *StreamItem) IsError() error {
 }
 
 func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}, customId primitive.ObjectID) error {
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"seq_number", -1}}).SetLimit(1)
+
+	pip := mongo.Pipeline{bson.D{
+		{"$group", bson.D{
+			{"_id", ""},
+			{"maxid", bson.D{{"$max", "$id"}}},
+		},
+		}},
+	}
+
+	var foundElement *mongo_ops.TransferObjectBSON
+	err := cursor.All(ctx, &foundElement)
+	if err != nil {
+		return err
+	}
+	//if err := singleElement.Decode(&foundElement); err != nil {
+	//	return err
+	//}
+
 	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
 		item := &mongo_ops.TransferObjectBSON{
 			ID:        customId,
 			SectionID: sectionId,
 			Data:      serializedData,
 			Type:      streamType,
+			SeqNumber: foundElement.SeqNumber + 1,
 		}
 		if _, err := collection.InsertOne(ctx, item); err != nil {
 			return err
@@ -58,7 +80,7 @@ func ReadDataByID(ctx context.Context, collection *mongo.Collection, id string, 
 }
 
 // ReadStream /TODO refactor/fix StreamItem repeat
-func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId string, watch bool) <-chan StreamItem {
+func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId string, watch bool, additionalInfo int64) <-chan StreamItem {
 	res := make(chan StreamItem, 10)
 
 	pipeline := mongo.Pipeline{bson.D{
@@ -107,7 +129,14 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 							res <- StreamItem{TransferObject: nil, streamError: err}
 						} else {
 							transferObject := mongo_ops.BSONToProtoTObject(foundElement)
-							res <- StreamItem{TransferObject: transferObject, streamError: err}
+							if transferObject.Type == pager_transfers.ChatStreamRequest_messages.String() {
+								limit := transferObject.SeqNumber - additionalInfo
+								if transferObject.SeqNumber < limit {
+									res <- StreamItem{TransferObject: transferObject, streamError: err}
+								}
+							} else {
+								res <- StreamItem{TransferObject: transferObject, streamError: err}
+							}
 						}
 					} else {
 						res <- StreamItem{TransferObject: nil, streamError: err}

@@ -17,7 +17,7 @@ func (p PagerStreams) StreamChatMember(request *pager_transfers.ChatMemberReques
 	ctx := server.Context()
 	watch := utils.WatchFlag(ctx)
 
-	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.MembersCollection, namespaces.MemberSection(request.MemberId), watch) {
+	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.MembersCollection, namespaces.MemberSection(request.MemberId), watch, 0) {
 		if err := item.IsError(); err != nil {
 			log.Default().Println(err)
 			return err
@@ -36,7 +36,7 @@ func (p PagerStreams) StreamProfile(request *pager_transfers.ProfileStreamReques
 	userId := ctx.Value("user_id").(string)
 	watch := utils.WatchFlag(ctx)
 
-	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ProfileCollection, namespaces.ProfileSection(userId), watch) {
+	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ProfileCollection, namespaces.ProfileSection(userId), watch, 0) {
 		if err := item.IsError(); err != nil {
 			log.Default().Println(err)
 			return err
@@ -54,7 +54,7 @@ func (p PagerStreams) StreamChat(request *pager_transfers.ChatStreamRequest, ser
 	ctx := server.Context()
 	watch := utils.WatchFlag(ctx)
 
-	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(request.ChatId), watch) {
+	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(request.ChatId), watch, request.RequestedDays) {
 		if err := item.IsError(); err != nil {
 			log.Default().Println(err)
 			return err
