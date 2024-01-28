@@ -54,7 +54,7 @@ func (p PagerStreams) StreamChat(request *pager_transfers.ChatStreamRequest, ser
 	ctx := server.Context()
 	watch := utils.WatchFlag(ctx)
 
-	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(request.ChatId), watch, request.RequestedDays) {
+	for item := range ReadStream(server.Context(), mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(request.ChatId), watch, request.RequestedMessages) {
 		if err := item.IsError(); err != nil {
 			log.Default().Println(err)
 			return err

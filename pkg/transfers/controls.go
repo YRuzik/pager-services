@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"log"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/utils"
@@ -24,25 +25,14 @@ func (v *StreamItem) IsError() error {
 
 func InsertData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}, customId primitive.ObjectID) error {
 
-	findOptions := options.Find()
-	findOptions.SetSort(bson.D{{"seq_number", -1}}).SetLimit(1)
-
-	pip := mongo.Pipeline{bson.D{
-		{"$group", bson.D{
-			{"_id", ""},
-			{"maxid", bson.D{{"$max", "$id"}}},
-		},
-		}},
-	}
+	opts := options.FindOne().SetSort(map[string]int{"seq_number": -1})
+	seqNumber := int64(0)
 
 	var foundElement *mongo_ops.TransferObjectBSON
-	err := cursor.All(ctx, &foundElement)
-	if err != nil {
-		return err
+	err := collection.FindOne(ctx, bson.D{{}}, opts).Decode(&foundElement)
+	if err == nil {
+		seqNumber = foundElement.SeqNumber
 	}
-	//if err := singleElement.Decode(&foundElement); err != nil {
-	//	return err
-	//}
 
 	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
 		item := &mongo_ops.TransferObjectBSON{
@@ -50,7 +40,7 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 			SectionID: sectionId,
 			Data:      serializedData,
 			Type:      streamType,
-			SeqNumber: foundElement.SeqNumber + 1,
+			SeqNumber: seqNumber + 1,
 		}
 		if _, err := collection.InsertOne(ctx, item); err != nil {
 			return err
@@ -80,7 +70,7 @@ func ReadDataByID(ctx context.Context, collection *mongo.Collection, id string, 
 }
 
 // ReadStream /TODO refactor/fix StreamItem repeat
-func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId string, watch bool, additionalInfo int64) <-chan StreamItem {
+func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId string, watch bool, limitOption int64) <-chan StreamItem {
 	res := make(chan StreamItem, 10)
 
 	pipeline := mongo.Pipeline{bson.D{
@@ -121,6 +111,13 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 				res <- StreamItem{TransferObject: nil, streamError: err}
 			}
 		} else {
+			opts := options.FindOne().SetSort(map[string]int{"seq_number": -1})
+
+			var lastElement *mongo_ops.TransferObjectBSON
+			err := collection.FindOne(ctx, bson.D{{}}, opts).Decode(&lastElement)
+			if err != nil {
+				log.Print(err)
+			}
 			if current, err := collection.Find(ctx, filter, findOptions); err == nil {
 				var foundElement *mongo_ops.TransferObjectBSON
 				for current.Next(ctx) {
@@ -129,9 +126,9 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 							res <- StreamItem{TransferObject: nil, streamError: err}
 						} else {
 							transferObject := mongo_ops.BSONToProtoTObject(foundElement)
-							if transferObject.Type == pager_transfers.ChatStreamRequest_messages.String() {
-								limit := transferObject.SeqNumber - additionalInfo
-								if transferObject.SeqNumber < limit {
+							if (transferObject.Type == pager_transfers.ChatStreamRequest_messages.String()) && lastElement != nil {
+								limit := lastElement.SeqNumber - limitOption
+								if transferObject.SeqNumber > limit {
 									res <- StreamItem{TransferObject: transferObject, streamError: err}
 								}
 							} else {
