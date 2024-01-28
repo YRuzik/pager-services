@@ -46,13 +46,11 @@ func NewRefreshToken(uid primitive.ObjectID, identity string, duration time.Dura
 }
 
 func ValidateAccessToken(tokenString string) (*jwt.Token, error) {
-	//return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-	//	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-	//		return nil, status.Error(codes.Unknown, "unexpected signing method")
-	//	}
-	//
-	//	return secretKey, nil
-	//})
+	if tokenString == "" {
+		return nil, MentorError("Access token not found", codes.NotFound, &common.PagerError{
+			Code: common.PagerError_NOT_FOUND,
+		})
+	}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, status.Error(codes.Unknown, "unexpected signing method:")
@@ -70,6 +68,11 @@ func ValidateAccessToken(tokenString string) (*jwt.Token, error) {
 }
 
 func ValidateRefreshToken(tokenString string) (*jwt.Token, error) {
+	if tokenString == "" {
+		return nil, MentorError("Refresh token not found", codes.NotFound, &common.PagerError{
+			Code: common.PagerError_NOT_FOUND,
+		})
+	}
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, MentorError("unexpected signing method", codes.Unknown, &common.PagerError{
@@ -109,7 +112,7 @@ func RefreshAccessToken(refreshToken *jwt.Token) (string, error) {
 			Code: common.PagerError_UNAUTHENTICATED,
 		})
 	}
-	newAccessToken, err := NewToken(objectUserId, identity, 5*time.Second)
+	newAccessToken, err := NewToken(objectUserId, identity, 5*time.Minute)
 	if err != nil {
 		return "", MentorError("failed to generate new access token", codes.Internal, &common.PagerError{
 			Code:    common.PagerError_INTERNAL,

@@ -221,7 +221,7 @@ func FindUserIDsByIdentifier(ctx context.Context, identifier string) ([]string, 
 			return nil, err
 		}
 
-		if strings.Contains(userData.Email, identifier) || strings.Contains(userData.Login, identifier) {
+		if strings.Contains(userData.Login, identifier) {
 			userID, ok := result["_id"].(primitive.ObjectID)
 			if !ok {
 				return nil, status.Error(codes.Internal, "failed to convert ObjectID to string")

@@ -6,4 +6,4 @@ proto-win:
 		./proto/pager_proto/transfers/streams.proto ./proto/pager_proto/auth/auth.proto
 
 grpc-proxy:
-	grpcwebproxy --server_tls_cert_file=./cmd/pager/certs/server.crt --server_tls_key_file=./cmd/pager/certs/server.key --backend_addr=localhost:4001 --backend_tls_noverify --use_websockets --allow_all_origins
+	grpcwebproxy --server_tls_cert_file=./cmd/pager/certs/server.crt --server_tls_key_file=./cmd/pager/certs/server.key --backend_addr=localhost:4001 --backend_tls_noverify --use_websockets --allow_all_origins --server_http_debug_port=4561

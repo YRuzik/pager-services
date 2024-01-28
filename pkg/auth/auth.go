@@ -126,7 +126,7 @@ func (p PagerAuth) Login(ctx context.Context, request *pagerAuth.LoginRequest) (
 			Details: err.Error(),
 		})
 	}
-	AccessToken, err := utils.NewToken(UserId, authData.Identity, 5*time.Second)
+	AccessToken, err := utils.NewToken(UserId, authData.Identity, 5*time.Minute)
 	if err != nil {
 		return nil, err
 	}
