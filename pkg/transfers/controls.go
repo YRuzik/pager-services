@@ -29,7 +29,7 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 	seqNumber := int64(0)
 
 	var foundElement *mongo_ops.TransferObjectBSON
-	err := collection.FindOne(ctx, bson.D{{}}, opts).Decode(&foundElement)
+	err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&foundElement)
 	if err == nil {
 		seqNumber = foundElement.SeqNumber
 	}
@@ -114,7 +114,7 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 			opts := options.FindOne().SetSort(map[string]int{"seq_number": -1})
 
 			var lastElement *mongo_ops.TransferObjectBSON
-			err := collection.FindOne(ctx, bson.D{{}}, opts).Decode(&lastElement)
+			err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&lastElement)
 			if err != nil {
 				log.Print(err)
 			}
