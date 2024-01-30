@@ -15,6 +15,7 @@ type MongoCollections struct {
 	ChatCollection    *mongo.Collection
 	ProfileCollection *mongo.Collection
 	UsersCollection   *mongo.Collection
+	MembersCollection *mongo.Collection
 }
 
 var CollectionsPoll MongoCollections
@@ -45,5 +46,6 @@ func InitMongoDB() {
 		ChatCollection:    database.Collection("chats"),
 		ProfileCollection: database.Collection("profiles"),
 		UsersCollection:   database.Collection("profiles_md"),
+		MembersCollection: database.Collection("members"),
 	}
 }

@@ -24,7 +24,7 @@ func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessa
 		Id:           id.Hex(),
 		Text:         message.Text,
 		StampMillis:  message.StampMillis,
-		Status:       pagerChat.ChatMessage_sent,
+		Status:       pagerChat.ChatMessage_unread,
 		AuthorId:     message.AuthorId,
 		LinkedChatId: message.LinkedChatId,
 	}

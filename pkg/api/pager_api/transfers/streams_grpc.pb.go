@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PagerStreams_StreamProfile_FullMethodName = "/com.pager.api.PagerStreams/StreamProfile"
-	PagerStreams_StreamChat_FullMethodName    = "/com.pager.api.PagerStreams/StreamChat"
+	PagerStreams_StreamProfile_FullMethodName    = "/com.pager.api.PagerStreams/StreamProfile"
+	PagerStreams_StreamChat_FullMethodName       = "/com.pager.api.PagerStreams/StreamChat"
+	PagerStreams_StreamChatMember_FullMethodName = "/com.pager.api.PagerStreams/StreamChatMember"
 )
 
 // PagerStreamsClient is the client API for PagerStreams service.
@@ -29,6 +30,7 @@ const (
 type PagerStreamsClient interface {
 	StreamProfile(ctx context.Context, in *ProfileStreamRequest, opts ...grpc.CallOption) (PagerStreams_StreamProfileClient, error)
 	StreamChat(ctx context.Context, in *ChatStreamRequest, opts ...grpc.CallOption) (PagerStreams_StreamChatClient, error)
+	StreamChatMember(ctx context.Context, in *ChatMemberRequest, opts ...grpc.CallOption) (PagerStreams_StreamChatMemberClient, error)
 }
 
 type pagerStreamsClient struct {
@@ -103,12 +105,45 @@ func (x *pagerStreamsStreamChatClient) Recv() (*TransferObject, error) {
 	return m, nil
 }
 
+func (c *pagerStreamsClient) StreamChatMember(ctx context.Context, in *ChatMemberRequest, opts ...grpc.CallOption) (PagerStreams_StreamChatMemberClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PagerStreams_ServiceDesc.Streams[2], PagerStreams_StreamChatMember_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pagerStreamsStreamChatMemberClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type PagerStreams_StreamChatMemberClient interface {
+	Recv() (*TransferObject, error)
+	grpc.ClientStream
+}
+
+type pagerStreamsStreamChatMemberClient struct {
+	grpc.ClientStream
+}
+
+func (x *pagerStreamsStreamChatMemberClient) Recv() (*TransferObject, error) {
+	m := new(TransferObject)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PagerStreamsServer is the server API for PagerStreams service.
 // All implementations should embed UnimplementedPagerStreamsServer
 // for forward compatibility
 type PagerStreamsServer interface {
 	StreamProfile(*ProfileStreamRequest, PagerStreams_StreamProfileServer) error
 	StreamChat(*ChatStreamRequest, PagerStreams_StreamChatServer) error
+	StreamChatMember(*ChatMemberRequest, PagerStreams_StreamChatMemberServer) error
 }
 
 // UnimplementedPagerStreamsServer should be embedded to have forward compatible implementations.
@@ -120,6 +155,9 @@ func (UnimplementedPagerStreamsServer) StreamProfile(*ProfileStreamRequest, Page
 }
 func (UnimplementedPagerStreamsServer) StreamChat(*ChatStreamRequest, PagerStreams_StreamChatServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamChat not implemented")
+}
+func (UnimplementedPagerStreamsServer) StreamChatMember(*ChatMemberRequest, PagerStreams_StreamChatMemberServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamChatMember not implemented")
 }
 
 // UnsafePagerStreamsServer may be embedded to opt out of forward compatibility for this service.
@@ -175,6 +213,27 @@ func (x *pagerStreamsStreamChatServer) Send(m *TransferObject) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _PagerStreams_StreamChatMember_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ChatMemberRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PagerStreamsServer).StreamChatMember(m, &pagerStreamsStreamChatMemberServer{stream})
+}
+
+type PagerStreams_StreamChatMemberServer interface {
+	Send(*TransferObject) error
+	grpc.ServerStream
+}
+
+type pagerStreamsStreamChatMemberServer struct {
+	grpc.ServerStream
+}
+
+func (x *pagerStreamsStreamChatMemberServer) Send(m *TransferObject) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // PagerStreams_ServiceDesc is the grpc.ServiceDesc for PagerStreams service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -191,6 +250,11 @@ var PagerStreams_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StreamChat",
 			Handler:       _PagerStreams_StreamChat_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamChatMember",
+			Handler:       _PagerStreams_StreamChatMember_Handler,
 			ServerStreams: true,
 		},
 	},

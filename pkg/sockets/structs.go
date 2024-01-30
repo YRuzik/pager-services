@@ -18,9 +18,10 @@ type UserDetailsRequestPayloadStruct struct {
 
 // UserDetailsResponsePayloadStruct represents payload for Login and Registration response
 type UserDetailsResponsePayloadStruct struct {
-	Login  string `json:"login"`
-	UserId string `json:"user_id"`
-	Online bool   `json:"online"`
+	Login          string `json:"login"`
+	UserId         string `json:"user_id"`
+	Online         bool   `json:"online"`
+	LastSeenMillis int64  `json:"lastSeenMillis"`
 }
 
 // SocketEventStruct struct of socket events

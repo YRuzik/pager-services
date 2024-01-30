@@ -75,6 +75,7 @@ func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.Registra
 		Login:    request.GetLogin(),
 		Password: string(passHash),
 	}
+
 	exists, err := transfers.IsUserExistsWithData(ctx, authData.Email, authData.Login)
 	if err != nil {
 		return nil, err
