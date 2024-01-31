@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	common "pager-services/pkg/api/pager_api/common"
 	pager_chat "pager-services/pkg/api/pager_api/chat"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
@@ -136,7 +137,10 @@ func FindUserIDByIdentifier(ctx context.Context, identifier string) (primitive.O
 
 	cursor, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
 	if err != nil {
-		return primitive.NilObjectID, err
+		return primitive.NilObjectID, utils.MentorError("profile info not found", codes.NotFound, &common.PagerError{
+			Code:    common.PagerError_NOT_FOUND,
+			Details: err.Error(),
+		})
 	}
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
 		err := cursor.Close(ctx)
@@ -148,17 +152,26 @@ func FindUserIDByIdentifier(ctx context.Context, identifier string) (primitive.O
 	for cursor.Next(ctx) {
 		var result bson.M
 		if err := cursor.Decode(&result); err != nil {
-			return primitive.NilObjectID, err
+			return primitive.NilObjectID, utils.MentorError("failed to decode cursor", codes.Internal, &common.PagerError{
+				Code:    common.PagerError_INTERNAL,
+				Details: err.Error(),
+			})
 		}
 
 		dataBase64, ok := result["data"].(primitive.Binary)
 		if !ok {
-			return primitive.NilObjectID, status.Error(codes.InvalidArgument, "data field is not of type Binary")
+			return primitive.NilObjectID, utils.MentorError("data field binary not found", codes.InvalidArgument, &common.PagerError{
+				Code:    common.PagerError_INVALID_ARGUMENT,
+				Details: err.Error(),
+			})
 		}
 
 		var userData AuthDataForCollection1
 		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
-			return primitive.NilObjectID, err
+			return primitive.NilObjectID, utils.MentorError("failed unmarshal", codes.Internal, &common.PagerError{
+				Code:    common.PagerError_INTERNAL,
+				Details: err.Error(),
+			})
 		}
 
 		if userData.Email == identifier || userData.Login == identifier {
@@ -166,7 +179,10 @@ func FindUserIDByIdentifier(ctx context.Context, identifier string) (primitive.O
 		}
 	}
 
-	return primitive.NilObjectID, status.Error(codes.NotFound, "user not found")
+	return primitive.NilObjectID, utils.MentorError("user not found", codes.NotFound, &common.PagerError{
+		Code:    common.PagerError_NOT_FOUND,
+		Details: "user not found",
+	})
 }
 
 func GetHashedPasswordByIDAndRefreshToken(ctx context.Context, userID primitive.ObjectID) ([]byte, string, error) {
@@ -219,7 +235,7 @@ func FindUserIDsByIdentifier(ctx context.Context, identifier string) ([]string, 
 			return nil, err
 		}
 
-		if strings.Contains(userData.Email, identifier) || strings.Contains(userData.Login, identifier) {
+		if strings.Contains(userData.Login, identifier) {
 			userID, ok := result["_id"].(primitive.ObjectID)
 			if !ok {
 				return nil, status.Error(codes.Internal, "failed to convert ObjectID to string")
@@ -239,9 +255,12 @@ func CheckRefreshToken(ctx context.Context, token string) (bool, error) {
 	filter := bson.D{
 		{"refreshToken", token},
 	}
-	_, err := mongo_ops.CollectionsPoll.ProfileCollection.Find(ctx, filter)
+	_, err := mongo_ops.CollectionsPoll.UsersCollection.Find(ctx, filter)
 	if err != nil {
-		return false, status.Error(codes.NotFound, "refreshToken not found in db")
+		return false, utils.MentorError("refresh token not found in db", codes.NotFound, &common.PagerError{
+			Code:    common.PagerError_NOT_FOUND,
+			Details: err.Error(),
+		})
 	}
 	return true, nil
 }
