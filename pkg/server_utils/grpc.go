@@ -11,9 +11,11 @@ import (
 	"net/http/httputil"
 	pager_auth "pager-services/pkg/api/pager_api/auth"
 	pager_chat "pager-services/pkg/api/pager_api/chat"
+	pager_client "pager-services/pkg/api/pager_api/client"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/auth"
 	"pager-services/pkg/chat_actions"
+	"pager-services/pkg/client"
 	"pager-services/pkg/transfers"
 	"strings"
 )
@@ -65,6 +67,7 @@ func StartAuthServer(lis net.Listener) {
 func RegisterGrpcServices(registrar grpc.ServiceRegistrar) {
 	pager_chat.RegisterChatActionsServer(registrar, &chat_actions.PagerChat{})
 	pager_transfers.RegisterPagerStreamsServer(registrar, &transfers.PagerStreams{})
+	pager_client.RegisterClientServiceServer(registrar, &client.PagerClient{})
 }
 
 func CreateGrpcWithHttpHandler(httpHand http.Handler, proxy httputil.ReverseProxy, isAuth bool) http.Handler {

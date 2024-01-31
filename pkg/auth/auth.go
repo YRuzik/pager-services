@@ -1,7 +1,7 @@
 package auth
 
 import (
-	context "context"
+	"context"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
@@ -39,20 +39,6 @@ func (p PagerAuth) Refresh(ctx context.Context, request *pagerAuth.RefreshReques
 		return &pagerAuth.RefreshResponse{AccessToken: newAccessToken}, nil
 	}
 	return &pagerAuth.RefreshResponse{AccessToken: validAccessToken.Raw}, nil
-}
-
-func (p PagerAuth) SearchUsersByIdentifier(ctx context.Context, request *pagerAuth.SearchUsersRequest) (*pagerAuth.SearchUsersResponse, error) {
-	userIds, err := transfers.FindUserIDsByIdentifier(ctx, request.GetIdentifier())
-	if err != nil {
-		return nil, err
-	}
-
-	// Возвращаем список ID в ответе
-	response := &pagerAuth.SearchUsersResponse{
-		UserIds: userIds,
-	}
-
-	return response, nil
 }
 
 func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.RegistrationRequest) (*common.Empty, error) {

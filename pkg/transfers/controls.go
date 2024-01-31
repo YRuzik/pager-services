@@ -51,6 +51,27 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 	return nil
 }
 
+func UpdateData(ctx context.Context, collection *mongo.Collection, sectionId string, streamType string, payload interface{}, customId primitive.ObjectID) error {
+	if serializedData, err := utils.CustomMarshal(&payload); err == nil {
+		filter := bson.M{"_id": customId}
+		update := bson.M{
+			"$set": bson.M{
+				"sectionId": sectionId,
+				"data":      serializedData,
+				"type":      streamType,
+			},
+		}
+
+		_, err := collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
+}
+
 func ReadDataByID(ctx context.Context, collection *mongo.Collection, id string, payload interface{}) error {
 	docID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
