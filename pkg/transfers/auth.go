@@ -8,8 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	common "pager-services/pkg/api/pager_api/common"
 	pager_chat "pager-services/pkg/api/pager_api/chat"
+	common "pager-services/pkg/api/pager_api/common"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/namespaces"
@@ -53,7 +53,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 	}
 
 	memberInfo := &pager_chat.ChatMember{
-		UserId:         uniqueID.Hex(),
+		Id:             uniqueID.Hex(),
 		Email:          payload.Email,
 		Avatar:         nil,
 		Login:          payload.Login,
