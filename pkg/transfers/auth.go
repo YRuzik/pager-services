@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	pager_chat "pager-services/pkg/api/pager_api/chat"
+	common "pager-services/pkg/api/pager_api/common"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/namespaces"
@@ -26,14 +28,14 @@ type AuthLoginData struct {
 	Identity string
 	Password string `bson:"password"`
 }
-type AuthDataForCollection1 struct {
+type AuthDataForProfiles struct {
 	UserId string `bson:"user_id"`
 	Email  string `bson:"email"`
 	Avatar []byte `bson:"avatar"`
 	Login  string `bson:"login"`
 	Online bool   `bson:"online"`
 }
-type AuthDataForCollection2 struct {
+type AuthDataForProfilesMD struct {
 	ID           primitive.ObjectID `bson:"_id"`
 	Password     string             `bson:"password"`
 	RefreshToken string             `bson:"refreshToken"`
@@ -42,7 +44,7 @@ type AuthDataForCollection2 struct {
 func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 	uniqueID := utils.GenerateUniqueID()
 
-	payloadForCollection1 := &AuthDataForCollection1{
+	payloadForCollection1 := &AuthDataForProfiles{
 		UserId: uniqueID.Hex(),
 		Email:  payload.Email,
 		Avatar: nil,
@@ -51,7 +53,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 	}
 
 	memberInfo := &pager_chat.ChatMember{
-		UserId:         uniqueID.Hex(),
+		Id:             uniqueID.Hex(),
 		Email:          payload.Email,
 		Avatar:         nil,
 		Login:          payload.Login,
@@ -72,7 +74,7 @@ func InsertAuthData(ctx context.Context, payload *AuthRegisterData) error {
 	if err != nil {
 		return err
 	}
-	payloadForCollection2 := &AuthDataForCollection2{
+	payloadForCollection2 := &AuthDataForProfilesMD{
 		ID:           uniqueID,
 		Password:     payload.Password,
 		RefreshToken: refreshToken,
@@ -115,7 +117,7 @@ func IsUserExistsWithData(ctx context.Context, email, login string) (bool, error
 			return false, status.Error(codes.InvalidArgument, "data field is not of type Binary")
 		}
 
-		var userData AuthDataForCollection1
+		var userData AuthDataForProfiles
 		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
 			return false, err
 		}
@@ -164,7 +166,7 @@ func FindUserIDByIdentifier(ctx context.Context, identifier string) (primitive.O
 			})
 		}
 
-		var userData AuthDataForCollection1
+		var userData AuthDataForProfiles
 		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
 			return primitive.NilObjectID, utils.MentorError("failed unmarshal", codes.Internal, &common.PagerError{
 				Code:    common.PagerError_INTERNAL,
@@ -188,7 +190,7 @@ func GetHashedPasswordByIDAndRefreshToken(ctx context.Context, userID primitive.
 		{"_id", userID},
 	}
 
-	var result AuthDataForCollection2
+	var result AuthDataForProfilesMD
 	if err := mongo_ops.CollectionsPoll.UsersCollection.FindOne(ctx, filter).Decode(&result); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, "", errors.New("user not found")
@@ -228,7 +230,7 @@ func FindUserIDsByIdentifier(ctx context.Context, identifier string) ([]string, 
 			return nil, status.Error(codes.InvalidArgument, "data field is not of type Binary")
 		}
 
-		var userData AuthDataForCollection1
+		var userData AuthDataForProfiles
 		if err := utils.CustomUnmarshal(dataBase64.Data, &userData); err != nil {
 			return nil, err
 		}
