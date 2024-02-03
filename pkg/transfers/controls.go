@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"
+	pager_chat "pager-services/pkg/api/pager_api/chat"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/utils"
@@ -133,7 +134,6 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 			}
 		} else {
 			opts := options.FindOne().SetSort(map[string]int{"seq_number": -1})
-
 			var lastElement *mongo_ops.TransferObjectBSON
 			err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&lastElement)
 			if err != nil {
@@ -148,8 +148,12 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 						} else {
 							transferObject := mongo_ops.BSONToProtoTObject(foundElement)
 							if (transferObject.Type == pager_transfers.ChatStreamRequest_messages.String()) && lastElement != nil {
+								message := &pager_chat.ChatMessage{}
+								if err := utils.CustomUnmarshal(transferObject.Data, &message); err != nil {
+									log.Print("unmarshal error")
+								}
 								limit := lastElement.SeqNumber - limitOption
-								if transferObject.SeqNumber > limit {
+								if (transferObject.SeqNumber > limit) || (message.Status == pager_chat.ChatMessage_unread) {
 									res <- StreamItem{TransferObject: transferObject, streamError: err}
 								}
 							} else {
