@@ -42,6 +42,7 @@ func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessa
 			Status:       pagerChat.ChatMessage_unread,
 			AuthorId:     message.AuthorId,
 			LinkedChatId: message.LinkedChatId,
+			Updated:      false,
 		}
 		if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(updatedMessage.LinkedChatId), pager_transfers.ChatStreamRequest_messages.String(), updatedMessage, id); err != nil {
 			return nil, err
@@ -58,6 +59,7 @@ func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessa
 			Status:       message.Status,
 			AuthorId:     message.AuthorId,
 			LinkedChatId: message.LinkedChatId,
+			Updated:      message.Updated,
 		}
 		if err := transfers.UpdateData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(updatedMessage.LinkedChatId), pager_transfers.ChatStreamRequest_messages.String(), updatedMessage, messageId); err != nil {
 			return nil, err
