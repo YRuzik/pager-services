@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	ClientService_SearchUsersByIdentifier_FullMethodName = "/com.pager.api.ClientService/SearchUsersByIdentifier"
 	ClientService_ChangeDataProfile_FullMethodName       = "/com.pager.api.ClientService/ChangeDataProfile"
+	ClientService_ChangeConnectionState_FullMethodName   = "/com.pager.api.ClientService/ChangeConnectionState"
 )
 
 // ClientServiceClient is the client API for ClientService service.
@@ -30,6 +31,7 @@ const (
 type ClientServiceClient interface {
 	SearchUsersByIdentifier(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
 	ChangeDataProfile(ctx context.Context, in *common.PagerProfile, opts ...grpc.CallOption) (*common.PagerProfile, error)
+	ChangeConnectionState(ctx context.Context, in *ConnectionRequest, opts ...grpc.CallOption) (*ConnectionRequest, error)
 }
 
 type clientServiceClient struct {
@@ -58,12 +60,22 @@ func (c *clientServiceClient) ChangeDataProfile(ctx context.Context, in *common.
 	return out, nil
 }
 
+func (c *clientServiceClient) ChangeConnectionState(ctx context.Context, in *ConnectionRequest, opts ...grpc.CallOption) (*ConnectionRequest, error) {
+	out := new(ConnectionRequest)
+	err := c.cc.Invoke(ctx, ClientService_ChangeConnectionState_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ClientServiceServer is the server API for ClientService service.
 // All implementations should embed UnimplementedClientServiceServer
 // for forward compatibility
 type ClientServiceServer interface {
 	SearchUsersByIdentifier(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
 	ChangeDataProfile(context.Context, *common.PagerProfile) (*common.PagerProfile, error)
+	ChangeConnectionState(context.Context, *ConnectionRequest) (*ConnectionRequest, error)
 }
 
 // UnimplementedClientServiceServer should be embedded to have forward compatible implementations.
@@ -75,6 +87,9 @@ func (UnimplementedClientServiceServer) SearchUsersByIdentifier(context.Context,
 }
 func (UnimplementedClientServiceServer) ChangeDataProfile(context.Context, *common.PagerProfile) (*common.PagerProfile, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangeDataProfile not implemented")
+}
+func (UnimplementedClientServiceServer) ChangeConnectionState(context.Context, *ConnectionRequest) (*ConnectionRequest, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeConnectionState not implemented")
 }
 
 // UnsafeClientServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -124,6 +139,24 @@ func _ClientService_ChangeDataProfile_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ClientService_ChangeConnectionState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientServiceServer).ChangeConnectionState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientService_ChangeConnectionState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientServiceServer).ChangeConnectionState(ctx, req.(*ConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ClientService_ServiceDesc is the grpc.ServiceDesc for ClientService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -138,6 +171,10 @@ var ClientService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangeDataProfile",
 			Handler:    _ClientService_ChangeDataProfile_Handler,
+		},
+		{
+			MethodName: "ChangeConnectionState",
+			Handler:    _ClientService_ChangeConnectionState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
