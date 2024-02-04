@@ -68,13 +68,17 @@ func (p PagerAuth) Registration(ctx context.Context, request *pagerAuth.Registra
 	}
 
 	if exists {
-		return nil, status.Error(codes.AlreadyExists, "user already exists")
+		return nil, utils.MentorError("user already exists", codes.AlreadyExists, &common.PagerError{
+			Code: common.PagerError_ALREADY_EXISTS,
+		})
 	}
 
 	// Вставляем данные в коллекции
 	err = transfers.InsertAuthData(ctx, authData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to register user: %s", err)
+		return nil, utils.MentorError("failed to register user", codes.Internal, &common.PagerError{
+			Code: common.PagerError_INTERNAL,
+		})
 	}
 
 	return &common.Empty{}, nil
