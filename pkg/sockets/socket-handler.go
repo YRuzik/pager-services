@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	pager_client "pager-services/pkg/api/pager_api/client"
 	pager_common "pager-services/pkg/api/pager_api/common"
+	"pager-services/pkg/client"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/transfers"
 	"time"
@@ -109,7 +111,7 @@ func handleSocketPayloadEvents(client *Client, socketEventPayload SocketEventStr
 	}
 }
 
-func (c *Client) readPump() {
+func (c *Client) readPump(userId string) {
 	var socketEventPayload SocketEventStruct
 
 	// Unregistering the client and closing the connection
@@ -126,6 +128,12 @@ func (c *Client) readPump() {
 		decoderErr := decoder.Decode(&socketEventPayload)
 
 		if decoderErr != nil {
+			if _, err := client.ChangeConnectionStateBody(context.Background(), userId, &pager_client.ConnectionRequest{
+				LastStampMillis: time.Now().UnixMilli(),
+				Online:          false,
+			}); err != nil {
+				return
+			}
 			log.Printf("error: %v", decoderErr)
 			break
 		}
@@ -197,7 +205,7 @@ func CreateNewSocketUser(hub *Hub, connection *websocket.Conn, userID string) {
 	}
 
 	go client.writePump()
-	go client.readPump()
+	go client.readPump(userID)
 
 	client.hub.register <- client
 }

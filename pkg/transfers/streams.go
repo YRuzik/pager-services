@@ -23,7 +23,7 @@ func (p PagerStreams) StreamChatMember(request *pager_transfers.ChatMemberReques
 			return err
 		} else {
 			if err := server.Send(item.TransferObject); err != nil {
-				log.Fatal(err)
+				return err
 			}
 		}
 	}
@@ -42,7 +42,7 @@ func (p PagerStreams) StreamProfile(request *pager_transfers.ProfileStreamReques
 			return err
 		} else {
 			if err := server.Send(item.TransferObject); err != nil {
-				log.Fatal(err)
+				return err
 			}
 		}
 	}
@@ -60,7 +60,7 @@ func (p PagerStreams) StreamChat(request *pager_transfers.ChatStreamRequest, ser
 			return err
 		} else {
 			if err := server.Send(item.TransferObject); err != nil {
-				log.Fatal(err)
+				return err
 			}
 		}
 	}

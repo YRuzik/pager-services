@@ -20,6 +20,7 @@ func UpdateUserOnlineStatusByUserID(userID string, status bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	_, queryError := collection.UpdateOne(ctx, bson.M{"_id": docID}, bson.M{"$set": bson.M{"online": status}})
+	//_, queryError := memberCollection.UpdateOne(ctx, bson.M{"_id": docID}, bson.M{"$set": bson.M{"online": status}})
 	defer cancel()
 
 	if queryError != nil {
