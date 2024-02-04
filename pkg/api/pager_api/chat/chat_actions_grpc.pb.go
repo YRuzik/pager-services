@@ -20,16 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ChatActions_CreateChat_FullMethodName  = "/com.pager.api.ChatActions/CreateChat"
-	ChatActions_SendMessage_FullMethodName = "/com.pager.api.ChatActions/SendMessage"
+	ChatActions_UpdateChat_FullMethodName         = "/com.pager.api.ChatActions/UpdateChat"
+	ChatActions_SendMessage_FullMethodName        = "/com.pager.api.ChatActions/SendMessage"
+	ChatActions_UpdateManyMessages_FullMethodName = "/com.pager.api.ChatActions/UpdateManyMessages"
 )
 
 // ChatActionsClient is the client API for ChatActions service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatActionsClient interface {
-	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*Chat, error)
+	UpdateChat(ctx context.Context, in *Chat, opts ...grpc.CallOption) (*Chat, error)
 	SendMessage(ctx context.Context, in *ChatMessage, opts ...grpc.CallOption) (*common.Empty, error)
+	UpdateManyMessages(ctx context.Context, in *ManyMessagesRequest, opts ...grpc.CallOption) (*common.Empty, error)
 }
 
 type chatActionsClient struct {
@@ -40,9 +42,9 @@ func NewChatActionsClient(cc grpc.ClientConnInterface) ChatActionsClient {
 	return &chatActionsClient{cc}
 }
 
-func (c *chatActionsClient) CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*Chat, error) {
+func (c *chatActionsClient) UpdateChat(ctx context.Context, in *Chat, opts ...grpc.CallOption) (*Chat, error) {
 	out := new(Chat)
-	err := c.cc.Invoke(ctx, ChatActions_CreateChat_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, ChatActions_UpdateChat_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -58,23 +60,36 @@ func (c *chatActionsClient) SendMessage(ctx context.Context, in *ChatMessage, op
 	return out, nil
 }
 
+func (c *chatActionsClient) UpdateManyMessages(ctx context.Context, in *ManyMessagesRequest, opts ...grpc.CallOption) (*common.Empty, error) {
+	out := new(common.Empty)
+	err := c.cc.Invoke(ctx, ChatActions_UpdateManyMessages_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatActionsServer is the server API for ChatActions service.
 // All implementations should embed UnimplementedChatActionsServer
 // for forward compatibility
 type ChatActionsServer interface {
-	CreateChat(context.Context, *CreateChatRequest) (*Chat, error)
+	UpdateChat(context.Context, *Chat) (*Chat, error)
 	SendMessage(context.Context, *ChatMessage) (*common.Empty, error)
+	UpdateManyMessages(context.Context, *ManyMessagesRequest) (*common.Empty, error)
 }
 
 // UnimplementedChatActionsServer should be embedded to have forward compatible implementations.
 type UnimplementedChatActionsServer struct {
 }
 
-func (UnimplementedChatActionsServer) CreateChat(context.Context, *CreateChatRequest) (*Chat, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateChat not implemented")
+func (UnimplementedChatActionsServer) UpdateChat(context.Context, *Chat) (*Chat, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateChat not implemented")
 }
 func (UnimplementedChatActionsServer) SendMessage(context.Context, *ChatMessage) (*common.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (UnimplementedChatActionsServer) UpdateManyMessages(context.Context, *ManyMessagesRequest) (*common.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateManyMessages not implemented")
 }
 
 // UnsafeChatActionsServer may be embedded to opt out of forward compatibility for this service.
@@ -88,20 +103,20 @@ func RegisterChatActionsServer(s grpc.ServiceRegistrar, srv ChatActionsServer) {
 	s.RegisterService(&ChatActions_ServiceDesc, srv)
 }
 
-func _ChatActions_CreateChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateChatRequest)
+func _ChatActions_UpdateChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Chat)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatActionsServer).CreateChat(ctx, in)
+		return srv.(ChatActionsServer).UpdateChat(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChatActions_CreateChat_FullMethodName,
+		FullMethod: ChatActions_UpdateChat_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatActionsServer).CreateChat(ctx, req.(*CreateChatRequest))
+		return srv.(ChatActionsServer).UpdateChat(ctx, req.(*Chat))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -124,6 +139,24 @@ func _ChatActions_SendMessage_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatActions_UpdateManyMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ManyMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatActionsServer).UpdateManyMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatActions_UpdateManyMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatActionsServer).UpdateManyMessages(ctx, req.(*ManyMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatActions_ServiceDesc is the grpc.ServiceDesc for ChatActions service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -132,12 +165,16 @@ var ChatActions_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ChatActionsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateChat",
-			Handler:    _ChatActions_CreateChat_Handler,
+			MethodName: "UpdateChat",
+			Handler:    _ChatActions_UpdateChat_Handler,
 		},
 		{
 			MethodName: "SendMessage",
 			Handler:    _ChatActions_SendMessage_Handler,
+		},
+		{
+			MethodName: "UpdateManyMessages",
+			Handler:    _ChatActions_UpdateManyMessages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

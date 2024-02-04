@@ -14,6 +14,7 @@ import (
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/server_utils"
 	handlers "pager-services/pkg/sockets"
+	"pager-services/pkg/transfers"
 )
 
 //go:embed certs/server.crt
@@ -24,6 +25,9 @@ var keyTLS []byte
 
 func init() {
 	mongo_ops.InitMongoDB()
+	transfers.PagerLockerInitialize()
+
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {

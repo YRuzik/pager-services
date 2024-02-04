@@ -2,6 +2,7 @@ package transfers
 
 import (
 	"context"
+	locker2 "github.com/enfipy/locker"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -9,14 +10,21 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"
+	pager_chat "pager-services/pkg/api/pager_api/chat"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
 	"pager-services/pkg/mongo_ops"
 	"pager-services/pkg/utils"
 )
 
+var PagerLocker *locker2.Locker
+
 type StreamItem struct {
 	*pager_transfers.TransferObject
 	streamError error
+}
+
+func PagerLockerInitialize() {
+	PagerLocker = locker2.Initialize()
 }
 
 func (v *StreamItem) IsError() error {
@@ -29,8 +37,7 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 	seqNumber := int64(0)
 
 	var foundElement *mongo_ops.TransferObjectBSON
-	err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&foundElement)
-	if err == nil {
+	if err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&foundElement); err == nil {
 		seqNumber = foundElement.SeqNumber
 	}
 
@@ -46,6 +53,7 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 			return err
 		}
 	} else {
+		log.Print(err)
 		return err
 	}
 	return nil
@@ -62,8 +70,8 @@ func UpdateData(ctx context.Context, collection *mongo.Collection, sectionId str
 			},
 		}
 
-		_, err := collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
-		if err != nil {
+		if _, err := collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true)); err != nil {
+			log.Print(err)
 			return err
 		}
 	} else {
@@ -133,7 +141,6 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 			}
 		} else {
 			opts := options.FindOne().SetSort(map[string]int{"seq_number": -1})
-
 			var lastElement *mongo_ops.TransferObjectBSON
 			err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&lastElement)
 			if err != nil {
@@ -148,8 +155,12 @@ func ReadStream(ctx context.Context, collection *mongo.Collection, sectionId str
 						} else {
 							transferObject := mongo_ops.BSONToProtoTObject(foundElement)
 							if (transferObject.Type == pager_transfers.ChatStreamRequest_messages.String()) && lastElement != nil {
+								message := &pager_chat.ChatMessage{}
+								if err := utils.CustomUnmarshal(transferObject.Data, &message); err != nil {
+									log.Print("unmarshal error")
+								}
 								limit := lastElement.SeqNumber - limitOption
-								if transferObject.SeqNumber > limit {
+								if (transferObject.SeqNumber > limit) || (message.Status == pager_chat.ChatMessage_unread) {
 									res <- StreamItem{TransferObject: transferObject, streamError: err}
 								}
 							} else {

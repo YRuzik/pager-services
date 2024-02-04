@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/codes"
+	"log"
 	pager_chat "pager-services/pkg/api/pager_api/chat"
 	common "pager-services/pkg/api/pager_api/common"
 	pager_transfers "pager-services/pkg/api/pager_api/transfers"
@@ -20,8 +21,16 @@ func UpdateUserProfile(ctx context.Context, userID string, updatedProfile *commo
 			Details: err.Error(),
 		})
 	}
-	err = UpdateData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, namespaces.ProfileSection(userID), pager_transfers.ProfileStreamRequest_profile_info.String(), updatedProfile, mongoUserId)
-	if err != nil {
+	nProfile := &common.PagerProfile{
+		UserId:         updatedProfile.UserId,
+		Email:          updatedProfile.Email,
+		Avatar:         updatedProfile.Avatar,
+		Login:          updatedProfile.Login,
+		Online:         updatedProfile.Online,
+		LastSeenMillis: updatedProfile.LastSeenMillis,
+	}
+	if err := UpdateData(ctx, mongo_ops.CollectionsPoll.ProfileCollection, namespaces.ProfileSection(userID), pager_transfers.ProfileStreamRequest_profile_info.String(), nProfile, mongoUserId); err != nil {
+		log.Print(err)
 		return nil, utils.MentorError("failed to update data profile", codes.Internal, &common.PagerError{
 			Code:    common.PagerError_INTERNAL,
 			Details: err.Error(),
