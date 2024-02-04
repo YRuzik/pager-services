@@ -36,13 +36,14 @@ func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessa
 
 	if len(message.Id) == 0 {
 		updatedMessage = &pagerChat.ChatMessage{
-			Id:           id.Hex(),
-			Text:         message.Text,
-			StampMillis:  message.StampMillis,
-			Status:       pagerChat.ChatMessage_unread,
-			AuthorId:     message.AuthorId,
-			LinkedChatId: message.LinkedChatId,
-			Updated:      false,
+			Id:            id.Hex(),
+			Text:          message.Text,
+			StampMillis:   message.StampMillis,
+			Status:        pagerChat.ChatMessage_unread,
+			AuthorId:      message.AuthorId,
+			LinkedMessage: message.LinkedMessage,
+			LinkedChatId:  message.LinkedChatId,
+			Updated:       false,
 		}
 		if err := transfers.InsertData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(updatedMessage.LinkedChatId), pager_transfers.ChatStreamRequest_messages.String(), updatedMessage, id); err != nil {
 			return nil, err
@@ -53,13 +54,14 @@ func (p PagerChat) SendMessage(ctx context.Context, message *pagerChat.ChatMessa
 			return nil, err
 		}
 		updatedMessage = &pagerChat.ChatMessage{
-			Id:           message.Id,
-			Text:         message.Text,
-			StampMillis:  message.StampMillis,
-			Status:       message.Status,
-			AuthorId:     message.AuthorId,
-			LinkedChatId: message.LinkedChatId,
-			Updated:      message.Updated,
+			Id:            message.Id,
+			Text:          message.Text,
+			StampMillis:   message.StampMillis,
+			Status:        message.Status,
+			AuthorId:      message.AuthorId,
+			LinkedChatId:  message.LinkedChatId,
+			LinkedMessage: message.LinkedMessage,
+			Updated:       message.Updated,
 		}
 		if err := transfers.UpdateData(ctx, mongo_ops.CollectionsPoll.ChatCollection, namespaces.ChatSection(updatedMessage.LinkedChatId), pager_transfers.ChatStreamRequest_messages.String(), updatedMessage, messageId); err != nil {
 			return nil, err
