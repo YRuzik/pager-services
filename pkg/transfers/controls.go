@@ -2,6 +2,7 @@ package transfers
 
 import (
 	"context"
+	locker2 "github.com/enfipy/locker"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,9 +16,15 @@ import (
 	"pager-services/pkg/utils"
 )
 
+var PagerLocker *locker2.Locker
+
 type StreamItem struct {
 	*pager_transfers.TransferObject
 	streamError error
+}
+
+func PagerLockerInitialize() {
+	PagerLocker = locker2.Initialize()
 }
 
 func (v *StreamItem) IsError() error {
@@ -30,8 +37,7 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 	seqNumber := int64(0)
 
 	var foundElement *mongo_ops.TransferObjectBSON
-	err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&foundElement)
-	if err == nil {
+	if err := collection.FindOne(ctx, bson.D{{"section_id", sectionId}}, opts).Decode(&foundElement); err == nil {
 		seqNumber = foundElement.SeqNumber
 	}
 
@@ -47,6 +53,7 @@ func InsertData(ctx context.Context, collection *mongo.Collection, sectionId str
 			return err
 		}
 	} else {
+		log.Print(err)
 		return err
 	}
 	return nil
@@ -63,8 +70,8 @@ func UpdateData(ctx context.Context, collection *mongo.Collection, sectionId str
 			},
 		}
 
-		_, err := collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
-		if err != nil {
+		if _, err := collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true)); err != nil {
+			log.Print(err)
 			return err
 		}
 	} else {
