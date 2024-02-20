@@ -7,7 +7,6 @@ import (
 	mux2 "github.com/gorilla/mux"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -23,20 +22,12 @@ var certTLS []byte
 //go:embed certs/server.key
 var keyTLS []byte
 
+// fsdf
 func init() {
 	mongo_ops.InitMongoDB()
 	transfers.PagerLockerInitialize()
 
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
-}
-
-func getRoot(w http.ResponseWriter, r *http.Request) {
-	_, err := io.WriteString(w, "hello inreko practice")
-	if err != nil {
-		log.Print("error while write string ", err)
-		return
-	}
-
 }
 
 func loadTLSCredentials() (*tls.Config, error) {
@@ -59,10 +50,10 @@ func main() {
 	flag.Parse()
 	//ctx := context.Background()
 
-	grpcAddress := "localhost:0"
-	httpAddress := "localhost:4001"
-	authAddress := "localhost:0"
-	httpAuthAddress := "localhost:5001"
+	grpcAddress := "0.0.0.0:0"
+	httpAddress := "0.0.0.0:4001"
+	authAddress := "0.0.0.0:0"
+	httpAuthAddress := "0.0.0.0:5001"
 
 	tcpGrpcListener, listenerError := net.Listen("tcp", grpcAddress)
 	if listenerError != nil {

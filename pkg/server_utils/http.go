@@ -14,7 +14,7 @@ import (
 
 func HandleHttpRoutes(mux *mux2.Router, hub *handlers.Hub) {
 	mux.HandleFunc("/", func(responseWriter http.ResponseWriter, request *http.Request) {
-		_, err := io.WriteString(responseWriter, "hello inreko practice")
+		_, err := io.WriteString(responseWriter, "pager-services api")
 		if err != nil {
 			log.Print("error while write string ", err)
 			return
