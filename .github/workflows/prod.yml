@@ -15,6 +15,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
           message: |
             🕰 ${{ github.actor }} start build:
             Repository: ${{ github.repository }}
@@ -66,6 +67,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
           message: |
             ✅ ${{ github.actor }} success build:
             Repository: ${{ github.repository }}
@@ -84,6 +86,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
           message: |
             🚫 ${{ github.actor }} build error:
             Repository: ${{ github.repository }}
