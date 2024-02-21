@@ -10,11 +10,6 @@ jobs:
   telegram-start:
     runs-on: ubuntu-latest
     steps:
-      - name: Get next version
-        uses: reecetech/version-increment@main
-        id: version
-        with:
-          scheme: calver
       - name: send telegram message on push
         uses: appleboy/telegram-action@master
         with:
@@ -68,11 +63,6 @@ jobs:
     if: success()
     needs: [ dockerize, deploy ]
     steps:
-      - name: Get next version
-        uses: reecetech/version-increment@main
-        id: version
-        with:
-          scheme: calver
       - name: send telegram message on push
         uses: appleboy/telegram-action@master
         with:
@@ -93,11 +83,6 @@ jobs:
     if: failure()
     needs: [ dockerize, deploy ]
     steps:
-      - name: Get next version
-        uses: reecetech/version-increment@main
-        id: version
-        with:
-          scheme: calver
       - name: send telegram message on push
         uses: appleboy/telegram-action@master
         with:
