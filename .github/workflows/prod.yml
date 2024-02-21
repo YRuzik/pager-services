@@ -10,6 +10,11 @@ jobs:
   telegram-start:
     runs-on: ubuntu-latest
     steps:
+      - name: Get next version
+        uses: reecetech/version-increment@2023.9.3
+        id: version
+        with:
+          scheme: calver
       - name: send telegram message on push
         uses: appleboy/telegram-action@master
         with:
@@ -20,6 +25,7 @@ jobs:
             🕰 ${{ github.actor }} start build:
             Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
             Commit message: ${{ github.event.commits[0].message }}
+            Build version: ${{ steps.version.outputs.version }}
             
             [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
 
@@ -62,6 +68,11 @@ jobs:
     if: success()
     needs: [ dockerize, deploy ]
     steps:
+      - name: Get next version
+        uses: reecetech/version-increment@2023.9.3
+        id: version
+        with:
+          scheme: calver
       - name: send telegram message on push
         uses: appleboy/telegram-action@master
         with:
@@ -72,6 +83,7 @@ jobs:
             ✅ ${{ github.actor }} success build:
             Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
             Commit message: ${{ github.event.commits[0].message }}
+            Build version: ${{ steps.version.outputs.version }}
 
             See changes: https://chat.pagerw.ru
             [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
@@ -81,6 +93,11 @@ jobs:
     if: failure()
     needs: [ dockerize, deploy ]
     steps:
+      - name: Get next version
+        uses: reecetech/version-increment@2023.9.3
+        id: version
+        with:
+          scheme: calver
       - name: send telegram message on push
         uses: appleboy/telegram-action@master
         with:
@@ -91,5 +108,6 @@ jobs:
             🚫 ${{ github.actor }} build error:
             Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
             Commit message: ${{ github.event.commits[0].message }}
+            Build version: ${{ steps.version.outputs.version }}
             
             [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
