@@ -18,7 +18,7 @@ jobs:
           format: markdown
           message: |
             🕰 ${{ github.actor }} start build:
-            Repository: ${{ github.repository }}
+            Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
             Commit message: ${{ github.event.commits[0].message }}
             
             [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
@@ -70,7 +70,7 @@ jobs:
           format: markdown
           message: |
             ✅ ${{ github.actor }} success build:
-            Repository: ${{ github.repository }}
+            Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
             Commit message: ${{ github.event.commits[0].message }}
 
             See changes: https://chat.pagerw.ru
@@ -89,7 +89,7 @@ jobs:
           format: markdown
           message: |
             🚫 ${{ github.actor }} build error:
-            Repository: ${{ github.repository }}
+            Repository: [${{ github.repository }}](${{ github.repositoryUrl }})
             Commit message: ${{ github.event.commits[0].message }}
             
             [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
