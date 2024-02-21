@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get next version
-        uses: reecetech/version-increment@2023.9.3
+        uses: reecetech/version-increment@main
         id: version
         with:
           scheme: calver
@@ -69,7 +69,7 @@ jobs:
     needs: [ dockerize, deploy ]
     steps:
       - name: Get next version
-        uses: reecetech/version-increment@2023.9.3
+        uses: reecetech/version-increment@main
         id: version
         with:
           scheme: calver
@@ -94,7 +94,7 @@ jobs:
     needs: [ dockerize, deploy ]
     steps:
       - name: Get next version
-        uses: reecetech/version-increment@2023.9.3
+        uses: reecetech/version-increment@main
         id: version
         with:
           scheme: calver
