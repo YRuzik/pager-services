@@ -20,7 +20,8 @@ jobs:
             Repository: ${{ github.repository }}
             Commit message: ${{ github.event.commits[0].message }}
             
-            View Action (https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | Commit changes (https://github.com/${{ github.repository }}/commit/${{github.sha}})
+            [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
   dockerize:
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +72,7 @@ jobs:
             Commit message: ${{ github.event.commits[0].message }}
 
             See changes: https://chat.pagerw.ru
-            View Action (https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | Commit changes (https://github.com/${{ github.repository }}/commit/${{github.sha}})
+            [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
 
   telegram-error:
     runs-on: ubuntu-latest
@@ -88,4 +89,4 @@ jobs:
             Repository: ${{ github.repository }}
             Commit message: ${{ github.event.commits[0].message }}
             
-            View Action (https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | Commit changes (https://github.com/${{ github.repository }}/commit/${{github.sha}})
+            [View Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [Commit changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
